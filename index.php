@@ -19,7 +19,35 @@ function obtenerLibrosCarpeta() {
                         'descripcion' => 'Audiolibro disponible en la página',
                         'audio' => $archivo,
                         'imagen' => 'placeholder.png',
-                        'tipo' => $tipoAudio
+                        'tipo' => $tipoAudio,
+                        'tipoLibro' => 'audio'
+                    ];
+                }
+            }
+        }
+    }
+    return $libros;
+}
+
+// Función para obtener libros PDF de la carpeta libros
+function obtenerLibrosPDF() {
+    $libros = [];
+    $carpetaLibros = 'libros/';
+
+    if (is_dir($carpetaLibros)) {
+        $archivos = scandir($carpetaLibros);
+        foreach ($archivos as $archivo) {
+            if ($archivo !== '.' && $archivo !== '..') {
+                $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
+                if ($extension === 'pdf') {
+                    $titulo = ucwords(str_replace(['_', '.pdf'], [' ', ''], $archivo));
+                    $libros[] = [
+                        'titulo' => $titulo,
+                        'autor' => 'Biblioteca de Libros',
+                        'descripcion' => 'Libro disponible para leer en PDF',
+                        'archivo' => $archivo,
+                        'imagen' => 'placeholder.png',
+                        'tipoLibro' => 'pdf'
                     ];
                 }
             }
@@ -29,6 +57,7 @@ function obtenerLibrosCarpeta() {
 }
 
 $librosCarpeta = obtenerLibrosCarpeta();
+$librosPDF = obtenerLibrosPDF();
 ?>
 
 <!DOCTYPE html>
@@ -166,6 +195,31 @@ foreach ($librosCarpeta as $libro) {
 
 <?php } ?>
 
+</section>
+
+<section class="contenedor-libros libros-pdf">
+<h2>📖 Biblioteca de Libros PDF</h2>
+<?php
+// Mostrar libros PDF de la carpeta libros
+foreach ($librosPDF as $libro) {
+?>
+
+<div class="libro libro-pdf" data-titulo="<?php echo htmlspecialchars($libro['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($libro['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($libro['descripcion'], ENT_QUOTES); ?>">
+
+<img src="imagenes/<?php echo $libro['imagen']; ?>" alt="Portada de <?php echo $libro['titulo']; ?>">
+
+<h3><?php echo $libro['titulo']; ?></h3>
+
+<p><?php echo $libro['autor']; ?></p>
+
+<p><?php echo $libro['descripcion']; ?></p>
+
+<a href="libros/<?php echo $libro['archivo']; ?>" target="_blank" class="btn-descargar">📖 Abrir PDF</a>
+<a href="libros/<?php echo $libro['archivo']; ?>" download class="btn-descargar">⬇️ Descargar</a>
+
+</div>
+
+<?php } ?>
 </section>
 
 </body>

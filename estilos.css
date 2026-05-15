@@ -239,6 +239,59 @@ audio{
     color:#38bdf8;
     text-decoration:none;
 }
+
+/* Estilos para la sección de libros PDF */
+.libros-pdf {
+    background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+    padding:60px 40px !important;
+    margin-top:60px;
+}
+
+.libros-pdf h2 {
+    text-align:center;
+    color:#38bdf8;
+    font-size:40px;
+    margin-bottom:40px;
+    text-shadow:0 0 10px rgba(56,189,248,0.3);
+}
+
+.libro-pdf {
+    background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+    border:2px solid #38bdf8;
+    position:relative;
+}
+
+.libro-pdf:hover {
+    border-color:#0ea5e9;
+    box-shadow:0 0 30px rgba(56,189,248,0.5);
+}
+
+.btn-descargar {
+    display:inline-block;
+    width:85%;
+    padding:12px;
+    margin:8px auto;
+    background:#2563eb;
+    color:white;
+    text-align:center;
+    text-decoration:none;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    transition:0.3s;
+    font-weight:bold;
+    font-size:16px;
+}
+
+.btn-descargar:hover {
+    background:#38bdf8;
+    transform:scale(1.05);
+    box-shadow:0 0 15px rgba(56,189,248,0.4);
+}
+
+.btn-descargar:active {
+    transform:scale(0.98);
+}
 .login{
     width:400px;
     margin:80px auto;
