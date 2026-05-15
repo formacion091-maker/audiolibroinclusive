@@ -44,6 +44,12 @@ if(!isset($_SESSION['usuario'])){
 🌙 Modo Oscuro
 </button>
 
+<a href="subir_libros.php">
+<button>
+📥 Agregar libro
+</button>
+</a>
+
 <a href="logout.php">
 <button>
 🚪 Salir
@@ -61,7 +67,7 @@ if(!isset($_SESSION['usuario'])){
 <input type="text"
 id="busqueda"
 placeholder="Buscar audiolibro">
-<button class="btn-buscar" onclick="buscarGoogleLibros()">🔎 Buscar en Google</button>
+<button class="btn-buscar" onclick="buscarLibrosLocal()">🔎 Buscar audiolibro</button>
 <button class="btn-buscar" onclick="mostrarOffline()">🎧 Escuchar sin conexión</button>
 <div id="resultados" class="resultados"></div>
 
@@ -69,8 +75,8 @@ placeholder="Buscar audiolibro">
 
 <section class="offline-biblioteca">
 <h2>Opciones sin conexión</h2>
-<p>Escucha estos audiolibros locales si la búsqueda en Google no funciona.</p>
-<div class="contenedor-libros">
+<p>Escucha estos audiolibros locales si la búsqueda en la página no tiene resultados.</p>
+<div class="contenedor-libros local-libros">
     <div class="libro">
         <img src="imagenes/placeholder.png" alt="Cuentos para dormir">
         <h3>Cuentos para dormir</h3>
@@ -101,7 +107,7 @@ placeholder="Buscar audiolibro">
 </div>
 </section>
 
-<section class="contenedor-libros">
+<section class="contenedor-libros local-libros">
 
 <?php
 
@@ -113,7 +119,7 @@ while($fila = mysqli_fetch_assoc($resultado)){
 
 ?>
 
-<div class="libro">
+<div class="libro" data-titulo="<?php echo htmlspecialchars($fila['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($fila['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($fila['descripcion'], ENT_QUOTES); ?>">
 
 <img src="imagenes/<?php echo $fila['imagen']; ?>">
 

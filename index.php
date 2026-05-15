@@ -30,6 +30,7 @@
 <button onclick="cambiarIdioma('pt-PT')">🇵🇹 Português</button>
 <button onclick="leerPagina()">🔊 Escuchar Todo</button>
 <button onclick="activarBusquedaVoz()">🎤 Hablar para Buscar</button>
+<a href="subir_libros.php"><button>📥 Agregar libro</button></a>
 </nav>
 
 </header>
@@ -43,7 +44,7 @@ Una plataforma diseñada especialmente para personas con discapacidad visual y b
 </p>
 
 <input type="text" id="busqueda" placeholder="Buscar audiolibro...">
-<button class="btn-buscar" onclick="buscarGoogleLibros()">🔎 Buscar en Google</button>
+<button class="btn-buscar" onclick="buscarLibrosLocal()">🔎 Buscar audiolibro</button>
 <button class="btn-buscar" onclick="mostrarOffline()">🎧 Escuchar sin conexión</button>
 <div id="resultados" class="resultados"></div>
 
@@ -51,8 +52,8 @@ Una plataforma diseñada especialmente para personas con discapacidad visual y b
 
 <section class="offline-biblioteca">
 <h2>Opciones sin conexión</h2>
-<p>Escucha estos audiolibros locales si la búsqueda en Google no funciona.</p>
-<div class="contenedor-libros">
+<p>Escucha estos audiolibros locales si la búsqueda en la página no tiene resultados.</p>
+<div class="contenedor-libros local-libros">
     <div class="libro">
         <img src="imagenes/placeholder.png" alt="Cuentos para dormir">
         <h3>Cuentos para dormir</h3>
@@ -83,7 +84,7 @@ Una plataforma diseñada especialmente para personas con discapacidad visual y b
 </div>
 </section>
 
-<section class="contenedor-libros">
+<section class="contenedor-libros local-libros">
 
 <?php
 
@@ -94,7 +95,7 @@ while($fila = mysqli_fetch_assoc($resultado)){
 
 ?>
 
-<div class="libro">
+<div class="libro" data-titulo="<?php echo htmlspecialchars($fila['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($fila['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($fila['descripcion'], ENT_QUOTES); ?>">
 
 <img src="imagenes/<?php echo $fila['imagen']; ?>">
 
