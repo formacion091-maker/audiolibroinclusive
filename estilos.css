@@ -1,0 +1,222 @@
+body{
+    margin:0;
+    font-family:'Segoe UI',sans-serif;
+    background:#0f172a;
+    color:white;
+}
+
+header{
+    background:#111827;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+header h1{
+    color:#38bdf8;
+    font-size:35px;
+}
+
+nav button{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:12px 18px;
+    margin:5px;
+    border-radius:12px;
+    cursor:pointer;
+    transition:0.3s;
+    font-size:16px;
+}
+
+nav button:hover{
+    background:#38bdf8;
+    transform:scale(1.05);
+}
+
+.hero{
+    text-align:center;
+    padding:70px 20px;
+}
+
+.hero h2{
+    font-size:50px;
+    color:#38bdf8;
+}
+
+.hero p{
+    font-size:20px;
+    color:#cbd5e1;
+}
+
+.hero input{
+    width:70%;
+    padding:18px;
+    border-radius:15px;
+    border:none;
+    font-size:18px;
+    margin-top:20px;
+    background:#1e293b;
+    color:white;
+}
+
+.contenedor-libros{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+    gap:30px;
+    padding:40px;
+}
+
+.libro{
+    background:#1e293b;
+    border-radius:25px;
+    overflow:hidden;
+    transition:0.4s;
+    box-shadow:0 0 20px rgba(0,0,0,0.4);
+}
+
+.libro:hover{
+    transform:translateY(-10px);
+}
+
+.libro img{
+    width:100%;
+    height:350px;
+    object-fit:cover;
+}
+
+.libro h3{
+    color:#38bdf8;
+    padding:10px;
+}
+
+.libro p{
+    padding:0 15px;
+    color:#cbd5e1;
+}
+
+audio{
+    width:90%;
+    margin:20px;
+}
+
+.dark{
+    background:black;
+}
+.login{
+    width:400px;
+    margin:80px auto;
+    background:#1e293b;
+    padding:40px;
+    border-radius:20px;
+    text-align:center;
+}
+
+.login h2{
+    color:#38bdf8;
+}
+
+.login input{
+    width:90%;
+    padding:15px;
+    margin:10px;
+    border:none;
+    border-radius:10px;
+    background:#0f172a;
+    color:white;
+}
+
+.login button{
+    width:95%;
+    padding:15px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:18px;
+}
+
+.login a{
+    color:#38bdf8;
+    text-decoration:none;
+}
+.login{
+    width:400px;
+    margin:80px auto;
+    background:#1e293b;
+    padding:40px;
+    border-radius:20px;
+    text-align:center;
+}
+
+.login h2{
+    color:#38bdf8;
+}
+
+.login input{
+    width:90%;
+    padding:15px;
+    margin:10px;
+    border:none;
+    border-radius:10px;
+    background:#0f172a;
+    color:white;
+}
+
+.login button{
+    width:95%;
+    padding:15px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:18px;
+}
+
+.login a{
+    color:#38bdf8;
+    text-decoration:none;
+}
+.login{
+    width:400px;
+    margin:80px auto;
+    background:#1e293b;
+    padding:40px;
+    border-radius:20px;
+    text-align:center;
+}
+
+.login h2{
+    color:#38bdf8;
+}
+
+.login input{
+    width:90%;
+    padding:15px;
+    margin:10px;
+    border:none;
+    border-radius:10px;
+    background:#0f172a;
+    color:white;
+}
+
+.login button{
+    width:95%;
+    padding:15px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:18px;
+}
+
+.login a{
+    color:#38bdf8;
+    text-decoration:none;
+}
