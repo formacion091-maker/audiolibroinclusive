@@ -14,23 +14,33 @@ if (isset($_POST['guardar'])) {
     if (!empty($_FILES['audio']['name']) && !empty($_FILES['imagen']['name'])) {
         $audioNombre = basename($_FILES['audio']['name']);
         $imagenNombre = basename($_FILES['imagen']['name']);
-        $audioExt = pathinfo($audioNombre, PATHINFO_EXTENSION);
-        $imagenExt = pathinfo($imagenNombre, PATHINFO_EXTENSION);
+        $audioExt = strtolower(pathinfo($audioNombre, PATHINFO_EXTENSION));
+        $imagenExt = strtolower(pathinfo($imagenNombre, PATHINFO_EXTENSION));
 
-        $audioArchivo = time() . '_audio.' . $audioExt;
-        $imagenArchivo = time() . '_imagen.' . $imagenExt;
-        $audioDestino = 'audios/' . $audioArchivo;
-        $imagenDestino = 'imagenes/' . $imagenArchivo;
+        // Validar extensiones de audio permitidas
+        $extensionesAudioPermitidas = ['wav', 'mp3', 'ogg', 'm4a'];
+        $extensionesImagenPermitidas = ['jpg', 'jpeg', 'png', 'gif'];
 
-        if (move_uploaded_file($_FILES['audio']['tmp_name'], $audioDestino) && move_uploaded_file($_FILES['imagen']['tmp_name'], $imagenDestino)) {
-            $sql = "INSERT INTO libros (titulo, autor, idioma, categoria, audio, imagen, descripcion) VALUES ('$titulo', '$autor', '$idioma', '$categoria', '$audioArchivo', '$imagenArchivo', '$descripcion')";
-            if (mysqli_query($conn, $sql)) {
-                $mensaje = 'Libro guardado correctamente en la página.';
-            } else {
-                $mensaje = 'Error guardando el libro en la base de datos.';
-            }
+        if (!in_array($audioExt, $extensionesAudioPermitidas)) {
+            $mensaje = 'Formato de audio no permitido. Solo se permiten: ' . implode(', ', $extensionesAudioPermitidas);
+        } elseif (!in_array($imagenExt, $extensionesImagenPermitidas)) {
+            $mensaje = 'Formato de imagen no permitido. Solo se permiten: ' . implode(', ', $extensionesImagenPermitidas);
         } else {
-            $mensaje = 'No se pudo subir el archivo. Verifica los permisos del directorio.';
+            $audioArchivo = time() . '_audio.' . $audioExt;
+            $imagenArchivo = time() . '_imagen.' . $imagenExt;
+            $audioDestino = 'audios/' . $audioArchivo;
+            $imagenDestino = 'imagenes/' . $imagenArchivo;
+
+            if (move_uploaded_file($_FILES['audio']['tmp_name'], $audioDestino) && move_uploaded_file($_FILES['imagen']['tmp_name'], $imagenDestino)) {
+                $sql = "INSERT INTO libros (titulo, autor, idioma, categoria, audio, imagen, descripcion) VALUES ('$titulo', '$autor', '$idioma', '$categoria', '$audioArchivo', '$imagenArchivo', '$descripcion')";
+                if (mysqli_query($conn, $sql)) {
+                    $mensaje = 'Libro guardado correctamente en la página.';
+                } else {
+                    $mensaje = 'Error guardando el libro en la base de datos.';
+                }
+            } else {
+                $mensaje = 'No se pudo subir el archivo. Verifica los permisos del directorio.';
+            }
         }
     } else {
         $mensaje = 'Debes seleccionar un archivo de audio y una imagen.';
@@ -67,8 +77,8 @@ if (isset($_POST['guardar'])) {
         <input type="text" name="idioma" placeholder="Idioma" required>
         <input type="text" name="categoria" placeholder="Categoría" required>
         <textarea name="descripcion" placeholder="Descripción del libro" required></textarea>
-        <input type="file" name="audio" accept="audio/*" required>
-        <input type="file" name="imagen" accept="image/*" required>
+        <input type="file" name="audio" accept=".wav,.mp3,.ogg,.m4a" required>
+        <input type="file" name="imagen" accept=".jpg,.jpeg,.png,.gif" required>
         <button type="submit" name="guardar">Guardar libro</button>
     </form>
 </section>

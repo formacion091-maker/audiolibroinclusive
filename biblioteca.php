@@ -8,6 +8,36 @@ if(!isset($_SESSION['usuario'])){
     header("Location:login.php");
 }
 
+// Función para obtener libros de la carpeta audios
+function obtenerLibrosCarpeta() {
+    $libros = [];
+    $carpetaAudios = 'audios/';
+
+    if (is_dir($carpetaAudios)) {
+        $archivos = scandir($carpetaAudios);
+        foreach ($archivos as $archivo) {
+            if ($archivo !== '.' && $archivo !== '..') {
+                $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
+                if (in_array($extension, ['wav', 'mp3', 'ogg', 'm4a'])) {
+                    $titulo = ucwords(str_replace(['_', '.' . $extension], [' ', ''], $archivo));
+                    $tipoAudio = $extension === 'wav' ? 'audio/wav' : 'audio/mpeg';
+                    $libros[] = [
+                        'titulo' => $titulo,
+                        'autor' => 'Biblioteca Local',
+                        'descripcion' => 'Audiolibro disponible en la página',
+                        'audio' => $archivo,
+                        'imagen' => 'placeholder.png',
+                        'tipo' => $tipoAudio
+                    ];
+                }
+            }
+        }
+    }
+    return $libros;
+}
+
+$librosCarpeta = obtenerLibrosCarpeta();
+
 ?>
 
 <!DOCTYPE html>
@@ -141,6 +171,40 @@ Autor:
 <source
 src="audios/<?php echo $fila['audio']; ?>"
 type="audio/mpeg">
+
+</audio>
+
+</div>
+
+<?php } ?>
+
+<?php
+// Mostrar libros de la carpeta
+foreach ($librosCarpeta as $libro) {
+?>
+
+<div class="libro" data-titulo="<?php echo htmlspecialchars($libro['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($libro['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($libro['descripcion'], ENT_QUOTES); ?>">
+
+<img src="imagenes/<?php echo $libro['imagen']; ?>">
+
+<h3>
+<?php echo $libro['titulo']; ?>
+</h3>
+
+<p>
+Autor:
+<?php echo $libro['autor']; ?>
+</p>
+
+<p>
+<?php echo $libro['descripcion']; ?>
+</p>
+
+<audio controls>
+
+<source
+src="audios/<?php echo $libro['audio']; ?>"
+type="<?php echo $libro['tipo']; ?>">
 
 </audio>
 

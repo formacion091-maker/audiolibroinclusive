@@ -1,4 +1,35 @@
-<?php include("conexion.php"); ?>
+<?php include("conexion.php");
+
+// Función para obtener libros de la carpeta audios
+function obtenerLibrosCarpeta() {
+    $libros = [];
+    $carpetaAudios = 'audios/';
+
+    if (is_dir($carpetaAudios)) {
+        $archivos = scandir($carpetaAudios);
+        foreach ($archivos as $archivo) {
+            if ($archivo !== '.' && $archivo !== '..') {
+                $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
+                if (in_array($extension, ['wav', 'mp3', 'ogg', 'm4a'])) {
+                    $titulo = ucwords(str_replace(['_', '.' . $extension], [' ', ''], $archivo));
+                    $tipoAudio = $extension === 'wav' ? 'audio/wav' : 'audio/mpeg';
+                    $libros[] = [
+                        'titulo' => $titulo,
+                        'autor' => 'Biblioteca Local',
+                        'descripcion' => 'Audiolibro disponible en la página',
+                        'audio' => $archivo,
+                        'imagen' => 'placeholder.png',
+                        'tipo' => $tipoAudio
+                    ];
+                }
+            }
+        }
+    }
+    return $libros;
+}
+
+$librosCarpeta = obtenerLibrosCarpeta();
+?>
 
 <!DOCTYPE html>
 <html lang="es">
@@ -87,12 +118,11 @@ Una plataforma diseñada especialmente para personas con discapacidad visual y b
 <section class="contenedor-libros local-libros">
 
 <?php
-
+// Mostrar libros de la base de datos
 $sql = "SELECT * FROM libros";
 $resultado = mysqli_query($conn, $sql);
 
 while($fila = mysqli_fetch_assoc($resultado)){
-
 ?>
 
 <div class="libro" data-titulo="<?php echo htmlspecialchars($fila['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($fila['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($fila['descripcion'], ENT_QUOTES); ?>">
@@ -107,6 +137,29 @@ while($fila = mysqli_fetch_assoc($resultado)){
 
 <audio controls>
 <source src="audios/<?php echo $fila['audio']; ?>" type="audio/mpeg">
+</audio>
+
+</div>
+
+<?php } ?>
+
+<?php
+// Mostrar libros de la carpeta
+foreach ($librosCarpeta as $libro) {
+?>
+
+<div class="libro" data-titulo="<?php echo htmlspecialchars($libro['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($libro['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($libro['descripcion'], ENT_QUOTES); ?>">
+
+<img src="imagenes/<?php echo $libro['imagen']; ?>">
+
+<h3><?php echo $libro['titulo']; ?></h3>
+
+<p><?php echo $libro['autor']; ?></p>
+
+<p><?php echo $libro['descripcion']; ?></p>
+
+<audio controls>
+<source src="audios/<?php echo $libro['audio']; ?>" type="<?php echo $libro['tipo']; ?>">
 </audio>
 
 </div>
