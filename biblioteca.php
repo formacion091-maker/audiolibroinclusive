@@ -61,6 +61,8 @@ if(!isset($_SESSION['usuario'])){
 <input type="text"
 id="busqueda"
 placeholder="Buscar audiolibro">
+<button class="btn-buscar" onclick="buscarGoogleLibros()">🔎 Buscar en Google</button>
+<div id="resultados" class="resultados"></div>
 
 </section>
 
