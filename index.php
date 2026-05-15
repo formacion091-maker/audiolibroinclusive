@@ -44,8 +44,43 @@ Una plataforma diseñada especialmente para personas con discapacidad visual y b
 
 <input type="text" id="busqueda" placeholder="Buscar audiolibro...">
 <button class="btn-buscar" onclick="buscarGoogleLibros()">🔎 Buscar en Google</button>
+<button class="btn-buscar" onclick="mostrarOffline()">🎧 Escuchar sin conexión</button>
 <div id="resultados" class="resultados"></div>
 
+</section>
+
+<section class="offline-biblioteca">
+<h2>Opciones sin conexión</h2>
+<p>Escucha estos audiolibros locales si la búsqueda en Google no funciona.</p>
+<div class="contenedor-libros">
+    <div class="libro">
+        <img src="imagenes/placeholder.png" alt="Cuentos para dormir">
+        <h3>Cuentos para dormir</h3>
+        <p>Autor: Voz Inclusiva</p>
+        <p>Una colección local de muestras narradas disponibles directamente en la página.</p>
+        <audio controls>
+            <source src="audios/cuentos_para_dormir.wav" type="audio/wav">
+        </audio>
+    </div>
+    <div class="libro">
+        <img src="imagenes/placeholder.png" alt="Relatos inclusivos">
+        <h3>Relatos inclusivos</h3>
+        <p>Autor: Biblioteca Offline</p>
+        <p>Historias accesibles desde el propio sitio para escuchar sin conexión.</p>
+        <audio controls>
+            <source src="audios/relatos_inclusivos.wav" type="audio/wav">
+        </audio>
+    </div>
+    <div class="libro">
+        <img src="imagenes/placeholder.png" alt="Historias para escuchar">
+        <h3>Historias para escuchar</h3>
+        <p>Autor: Narrador Web</p>
+        <p>Audio simple disponible en la página como alternativa cuando no hay conexión.</p>
+        <audio controls>
+            <source src="audios/historias_para_escuchar.wav" type="audio/wav">
+        </audio>
+    </div>
+</div>
 </section>
 
 <section class="contenedor-libros">

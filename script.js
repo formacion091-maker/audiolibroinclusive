@@ -1,9 +1,7 @@
 let idiomaActual = 'es-ES';
 
 function hablarBienvenida(){
-    const mensaje = new SpeechSynthesisUtterance(
-        'Bienvenido a la plataforma inclusiva de audiolibros'
-    );
+    const mensaje = new SpeechSynthesisUtterance('Bienvenido a la plataforma inclusiva de audiolibros');
     mensaje.lang = idiomaActual;
     speechSynthesis.speak(mensaje);
 }
@@ -37,16 +35,29 @@ function activarBusquedaVoz(){
     reconocimiento.lang = idiomaActual;
     reconocimiento.interimResults = false;
     reconocimiento.maxAlternatives = 1;
+    reconocimiento.continuous = false;
+
+    const resultados = document.getElementById('resultados');
+    if (resultados) resultados.innerHTML = '<p>Escuchando tu voz... por favor habla ahora.</p>';
 
     reconocimiento.start();
+
     reconocimiento.onresult = function(event){
         const texto = event.results[0][0].transcript;
         const input = document.getElementById('busqueda');
-        input.value = texto;
+        if (input) input.value = texto;
         buscarGoogleLibros();
     };
-    reconocimiento.onerror = function(){
-        alert('No se pudo reconocer la voz. Intenta de nuevo.');
+
+    reconocimiento.onerror = function(event){
+        if (resultados) resultados.innerHTML = '<p>No se pudo reconocer la voz. Intenta de nuevo usando el botón de búsqueda o el teclado.</p>';
+        console.error('Speech recognition error:', event.error);
+    };
+
+    reconocimiento.onend = function(){
+        if (resultados && !document.getElementById('busqueda').value.trim()) {
+            resultados.innerHTML = '<p>La búsqueda por voz terminó. Escribe o habla para buscar audiolibros.</p>';
+        }
     };
 }
 
@@ -62,29 +73,52 @@ async function buscarGoogleLibros(){
 
     if (resultados) resultados.innerHTML = '<p>Buscando audiolibros en Google...</p>';
 
+    const googleBooksUrl = `https://www.google.com/search?tbm=bks&q=${encodeURIComponent(consulta + ' audiolibro')}`;
+    if (!navigator.onLine) {
+        if (resultados) {
+            resultados.innerHTML = `
+                <p>Parece que no estás conectado a internet. Revisa tu conexión y vuelve a intentar.</p>
+                <p>También puedes abrir la búsqueda directamente en Google Books:</p>
+                <p><a href="${googleBooksUrl}" target="_blank" rel="noopener">Abrir búsqueda en Google Books</a></p>
+            `;
+        }
+        return;
+    }
+
     try {
         const respuesta = await fetch(
-            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(consulta + ' audiobook')}&printType=books&maxResults=12`
+            `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(consulta + ' audiobook')}&printType=books&maxResults=12`,
+            { mode: 'cors' }
         );
 
         if (!respuesta.ok) {
-            throw new Error('Error en la búsqueda');
+            throw new Error(`Error en la búsqueda: ${respuesta.status}`);
         }
 
         const datos = await respuesta.json();
-        mostrarResultadosGoogle(datos);
+        mostrarResultadosGoogle(datos, googleBooksUrl);
     } catch (err) {
-        if (resultados) resultados.innerHTML = '<p>No se pudo completar la búsqueda. Revisa tu conexión e inténtalo de nuevo.</p>';
+        if (resultados) {
+            resultados.innerHTML = `
+                <p>No se pudo completar la búsqueda automáticamente. Revisa tu conexión e inténtalo de nuevo.</p>
+                <p>Si el problema persiste, abre la búsqueda directamente en Google Books:</p>
+                <p><a href="${googleBooksUrl}" target="_blank" rel="noopener">Abrir búsqueda en Google Books</a></p>
+            `;
+        }
         console.error(err);
     }
 }
 
-function mostrarResultadosGoogle(datos){
+function mostrarResultadosGoogle(datos, fallbackUrl) {
     const resultados = document.getElementById('resultados');
     if (!resultados) return;
 
     if (!datos.items || datos.items.length === 0) {
-        resultados.innerHTML = '<p>No se encontraron resultados de audiolibros en Google.</p>';
+        resultados.innerHTML = `
+            <p>No se encontraron resultados de audiolibros en Google.</p>
+            <p>Prueba abrir la búsqueda directamente en Google Books:</p>
+            <p><a href="${fallbackUrl}" target="_blank" rel="noopener">Abrir búsqueda en Google Books</a></p>
+        `;
         return;
     }
 
@@ -106,6 +140,13 @@ function mostrarResultadosGoogle(datos){
         `;
         resultados.appendChild(tarjeta);
     });
+}
+
+function mostrarOffline(){
+    const offlineSection = document.querySelector('.offline-biblioteca');
+    if (offlineSection) {
+        offlineSection.scrollIntoView({ behavior: 'smooth' });
+    }
 }
 
 window.addEventListener('DOMContentLoaded', () => {

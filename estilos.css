@@ -52,6 +52,24 @@ nav button:hover{
     color:#cbd5e1;
 }
 
+.offline-biblioteca{
+    padding:40px 20px 20px;
+    background:#111827;
+    text-align:center;
+}
+
+.offline-biblioteca h2{
+    color:#34d399;
+    margin-bottom:10px;
+}
+
+.offline-biblioteca p{
+    color:#cbd5e1;
+    max-width:900px;
+    margin:0 auto 30px;
+    font-size:18px;
+}
+
 .btn-buscar{
     display:inline-block;
     margin-top:15px;
