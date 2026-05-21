@@ -78,7 +78,7 @@ $librosPDF = obtenerLibrosPDF();
 <title>Biblioteca</title>
 
 <link rel="stylesheet" href="estilos.css">
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.min.js"></script>
 <script src="script.js"></script>
 
 </head>
@@ -260,8 +260,11 @@ foreach ($librosPDF as $libro) {
 
 <p><?php echo $libro['descripcion']; ?></p>
 
-<a href="libros/<?php echo $libro['archivo']; ?>" target="_blank" class="btn-descargar">📖 Abrir PDF</a>
-<a href="libros/<?php echo $libro['archivo']; ?>" download class="btn-descargar">⬇️ Descargar</a>
+<div class="pdf-actions">
+  <button class="btn-descargar" onclick="window.open('libros/<?php echo $libro['archivo']; ?>', '_blank')">📖 Abrir PDF</button>
+  <button class="btn-descargar" onclick="location.href='libros/<?php echo $libro['archivo']; ?>'">⬇️ Descargar</button>
+  <button class="btn-descargar" onclick="leerPdf('libros/<?php echo $libro['archivo']; ?>')">🔊 Leer PDF</button>
+</div>
 
 </div>
 

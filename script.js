@@ -99,6 +99,70 @@ function mostrarOffline(){
     }
 }
 
+async function extraerTextoPdf(url) {
+    if (!window.pdfjsLib) {
+        throw new Error('pdf.js no está cargado');
+    }
+    const loadingTask = pdfjsLib.getDocument(url);
+    const pdf = await loadingTask.promise;
+    let texto = '';
+    for (let pagina = 1; pagina <= pdf.numPages; pagina++) {
+        const page = await pdf.getPage(pagina);
+        const content = await page.getTextContent();
+        const items = content.items.map(item => item.str);
+        texto += items.join(' ') + '\n\n';
+    }
+    return texto.trim();
+}
+
+function hablarTexto(texto) {
+    if (!('speechSynthesis' in window)) {
+        alert('El navegador no soporta síntesis de voz.');
+        return;
+    }
+    speechSynthesis.cancel();
+    const partes = texto.match(/[^\.\!\?]+[\.\!\?]+[\])'"“”’]*|.+$/g) || [texto];
+    let indice = 0;
+
+    const voz = () => {
+        if (indice >= partes.length) return;
+        const mensaje = new SpeechSynthesisUtterance(partes[indice].trim());
+        mensaje.lang = idiomaActual;
+        const voces = speechSynthesis.getVoices();
+        const seleccion = voces.find(v => v.lang.startsWith('es')) || voces[0];
+        if (seleccion) mensaje.voice = seleccion;
+        mensaje.rate = 0.92;
+        mensaje.onend = () => {
+            indice += 1;
+            if (indice < partes.length) {
+                voz();
+            }
+        };
+        speechSynthesis.speak(mensaje);
+    };
+    voz();
+}
+
+async function leerPdf(url) {
+    try {
+        const boton = document.activeElement;
+        if (boton) boton.disabled = true;
+        const texto = await extraerTextoPdf(url);
+        if (!texto) {
+            alert('No se pudo extraer texto del PDF.');
+            if (boton) boton.disabled = false;
+            return;
+        }
+        hablarTexto(texto);
+        if (boton) boton.disabled = false;
+    } catch (error) {
+        alert('Error leyendo PDF: ' + error.message);
+        console.error(error);
+        const boton = document.activeElement;
+        if (boton) boton.disabled = false;
+    }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     const input = document.getElementById('busqueda');
     if (input) {

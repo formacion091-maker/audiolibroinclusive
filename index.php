@@ -69,7 +69,7 @@ $librosPDF = obtenerLibrosPDF();
 <title>AudioLibros Inclusivos</title>
 
 <link rel="stylesheet" href="estilos.css">
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.min.js"></script>
 <script src="script.js"></script>
 
 </head>
@@ -204,7 +204,7 @@ foreach ($librosCarpeta as $libro) {
 foreach ($librosPDF as $libro) {
 ?>
 
-<div class="libro libro-pdf" data-titulo="<?php echo htmlspecialchars($libro['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($libro['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($libro['descripcion'], ENT_QUOTES); ?>">
+<div class="libro libro-pdf" data-titulo="<?php echo htmlspecialchars($libro['titulo'], ENT_QUOTES); ?>" data-autor="<?php echo htmlspecialchars($libro['autor'], ENT_QUOTES); ?>" data-descripcion="<?php echo htmlspecialchars($libro['descripcion'], ENT_QUOTES); ?>" data-pdf="libros/<?php echo $libro['archivo']; ?>">
 
 <img src="imagenes/<?php echo $libro['imagen']; ?>" alt="Portada de <?php echo $libro['titulo']; ?>">
 
@@ -214,8 +214,11 @@ foreach ($librosPDF as $libro) {
 
 <p><?php echo $libro['descripcion']; ?></p>
 
-<a href="libros/<?php echo $libro['archivo']; ?>" target="_blank" class="btn-descargar">📖 Abrir PDF</a>
-<a href="libros/<?php echo $libro['archivo']; ?>" download class="btn-descargar">⬇️ Descargar</a>
+<div class="pdf-actions">
+  <button class="btn-abrir-pdf" onclick="window.open('libros/<?php echo $libro['archivo']; ?>','_blank')">📖 Abrir PDF</button>
+  <button class="btn-descargar" onclick="location.href='libros/<?php echo $libro['archivo']; ?>'">⬇️ Descargar</button>
+  <button class="btn-descargar" onclick="leerPdf('libros/<?php echo $libro['archivo']; ?>')">🔊 Leer PDF</button>
+</div>
 
 </div>
 
