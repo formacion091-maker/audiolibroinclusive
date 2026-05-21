@@ -173,26 +173,44 @@ function hablarTexto(texto) {
 }
 
 async function leerPdf(url) {
-    try {
-        const boton = document.activeElement;
-        if (boton) boton.disabled = true;
-        const texto = await extraerTextoPdf(url);
-        if (!texto) {
-            alert('No se pudo extraer texto del PDF.');
-            if (boton) boton.disabled = false;
-            return;
+    return (async () => {
+        try {
+            const boton = document.activeElement;
+            if (boton && boton.tagName === 'BUTTON') boton.disabled = true;
+            actualizarMensajeInteractivo('Cargando PDF y preparando la lectura. Por favor espera.');
+            hablar('Cargando el libro. Por favor espera un momento.');
+            const texto = await extraerTextoPdf(url);
+            if (!texto) {
+                const mensajeError = 'No se pudo extraer texto del PDF.';
+                actualizarMensajeInteractivo(mensajeError);
+                hablar(mensajeError);
+                if (boton && boton.tagName === 'BUTTON') boton.disabled = false;
+                return;
+            }
+            hablarTexto(texto);
+            if (boton && boton.tagName === 'BUTTON') boton.disabled = false;
+        } catch (error) {
+            const mensajeError = 'Error leyendo PDF: ' + error.message;
+            actualizarMensajeInteractivo(mensajeError);
+            hablar(mensajeError);
+            console.error(error);
+            const boton = document.activeElement;
+            if (boton && boton.tagName === 'BUTTON') boton.disabled = false;
         }
-        hablarTexto(texto);
-        if (boton) boton.disabled = false;
-    } catch (error) {
-        alert('Error leyendo PDF: ' + error.message);
-        console.error(error);
-        const boton = document.activeElement;
-        if (boton) boton.disabled = false;
+    })();
+}
+
+function cargarVoces() {
+    const voces = speechSynthesis.getVoices();
+    if (!voces.length) {
+        speechSynthesis.addEventListener('voiceschanged', () => {
+            hablar('Voz disponible. Listo para leer el PDF.');
+        }, { once: true });
     }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+    cargarVoces();
     const input = document.getElementById('busqueda');
     if (input) {
         input.addEventListener('keydown', (event) => {

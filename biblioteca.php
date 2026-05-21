@@ -274,8 +274,8 @@ foreach ($librosPDF as $libro) {
 
 <div class="pdf-actions">
   <button class="btn-descargar" onclick="window.open('libros/<?php echo $libro['archivo']; ?>', '_blank')">📖 Abrir PDF</button>
-  <button class="btn-descargar" onclick="location.href='libros/<?php echo $libro['archivo']; ?>'">⬇️ Descargar</button>
-  <button class="btn-descargar" onclick="leerPdf('libros/<?php echo $libro['archivo']; ?>')">🔊 Leer PDF</button>
+  <button type="button" class="btn-descargar" onclick="location.href='libros/<?php echo $libro['archivo']; ?>'">⬇️ Descargar</button>
+  <button type="button" class="btn-descargar" aria-label="Leer PDF <?php echo htmlspecialchars($libro['titulo'], ENT_QUOTES); ?>" onclick="leerPdf('libros/<?php echo $libro['archivo']; ?>')">🔊 Leer PDF</button>
 </div>
 
 </div>
