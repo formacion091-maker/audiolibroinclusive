@@ -1,5 +1,21 @@
 // script_chat.js
 
+function getQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  return params.get(name);
+}
+
+function mostrarMensajeSistema(texto) {
+  const mensajes = document.getElementById('mensajes');
+  const div = document.createElement('div');
+  div.textContent = texto;
+  div.style.margin = '8px 0';
+  div.style.color = '#94a3b8';
+  div.style.fontStyle = 'italic';
+  mensajes.appendChild(div);
+  mensajes.scrollTop = mensajes.scrollHeight;
+}
+
 async function listarLibros() {
   const res = await fetch('libros_list.php');
   const libros = await res.json();
@@ -67,17 +83,42 @@ async function enviarChat(message, system="Eres un asistente que ayuda a leer y 
   if (voiceOn) hablar(content);
 }
 
+async function cargarLibroSeleccionado(archivo) {
+  if (!archivo) return;
+  mostrarMensajeSistema('Cargando el PDF seleccionado...');
+  document.getElementById('btn-leer').disabled = true;
+  document.getElementById('btn-chatgpt').disabled = true;
+  const url = 'libros/' + archivo;
+  window._lastExtractedText = await extraerTextoPDF(url);
+  document.getElementById('btn-leer').disabled = false;
+  document.getElementById('btn-chatgpt').disabled = false;
+  mostrarMensajeSistema('PDF cargado y listo para leer. Puedes usar Leer en voz alta o Enviar a ChatGPT.');
+  if (window._lastExtractedText.length > 200) {
+    mostrarMensajeSistema('Texto extraído: ' + window._lastExtractedText.slice(0,200) + '...');
+  } else {
+    mostrarMensajeSistema('Texto extraído: ' + window._lastExtractedText);
+  }
+  return window._lastExtractedText;
+}
+
 // Event handlers
 window.addEventListener('load', async ()=>{
   await listarLibros();
+  const parametroPdf = getQueryParam('pdf');
+  if (parametroPdf) {
+    const select = document.getElementById('select-libro');
+    if ([...select.options].some(o => o.value === parametroPdf)) {
+      select.value = parametroPdf;
+      await cargarLibroSeleccionado(parametroPdf);
+    } else {
+      mostrarMensajeSistema('No se encontró el PDF solicitado: ' + parametroPdf);
+    }
+  }
+
   document.getElementById('btn-cargar').addEventListener('click', async ()=>{
     const archivo = document.getElementById('select-libro').value;
     if (!archivo) return alert('Selecciona un libro');
-    const url = 'libros/' + archivo;
-    document.getElementById('btn-leer').disabled = false;
-    document.getElementById('btn-chatgpt').disabled = false;
-    window._lastExtractedText = await extraerTextoPDF(url);
-    alert('Texto extraído: ' + (window._lastExtractedText.length > 200 ? (window._lastExtractedText.slice(0,200) + '...') : window._lastExtractedText));
+    await cargarLibroSeleccionado(archivo);
   });
 
   document.getElementById('btn-leer').addEventListener('click', ()=>{
@@ -87,7 +128,10 @@ window.addEventListener('load', async ()=>{
 
   document.getElementById('btn-chatgpt').addEventListener('click', async ()=>{
     if (!window._lastExtractedText) return alert('Cargue el libro primero');
-    const prompt = 'Lee en voz alta o resume el contenido siguiente, mantén un tono claro y pausado:\n\n' + window._lastExtractedText;
+    const textoParaIA = window._lastExtractedText.length > 11000
+      ? window._lastExtractedText.slice(0,11000) + '\n\n[Texto truncado para que la IA pueda procesarlo]'
+      : window._lastExtractedText;
+    const prompt = 'Lee en voz alta o resume el contenido siguiente, mantén un tono claro y pausado:\n\n' + textoParaIA;
     await enviarChat(prompt);
   });
 

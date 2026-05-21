@@ -110,6 +110,12 @@ $librosPDF = obtenerLibrosPDF();
 🌙 Modo Oscuro
 </button>
 
+<a href="chat.php">
+<button>
+💬 Leer con IA
+</button>
+</a>
+
 <a href="subir_libros.php">
 <button>
 📥 Agregar libro
@@ -276,6 +282,7 @@ foreach ($librosPDF as $libro) {
   <button class="btn-descargar" onclick="window.open('libros/<?php echo $libro['archivo']; ?>', '_blank')">📖 Abrir PDF</button>
   <button type="button" class="btn-descargar" onclick="location.href='libros/<?php echo $libro['archivo']; ?>'">⬇️ Descargar</button>
   <button type="button" class="btn-descargar" aria-label="Leer PDF <?php echo htmlspecialchars($libro['titulo'], ENT_QUOTES); ?>" onclick="leerPdf('libros/<?php echo $libro['archivo']; ?>')">🔊 Leer PDF</button>
+  <button type="button" class="btn-descargar" onclick="window.location.href='chat.php?pdf=<?php echo urlencode($libro['archivo']); ?>'">💬 Leer con IA</button>
 </div>
 
 </div>
