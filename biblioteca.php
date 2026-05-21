@@ -48,7 +48,10 @@ function obtenerLibrosPDF() {
             if ($archivo !== '.' && $archivo !== '..') {
                 $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
                 if ($extension === 'pdf') {
-                    $titulo = ucwords(str_replace(['_', '.pdf'], [' ', ''], $archivo));
+                    $nombreBase = pathinfo($archivo, PATHINFO_FILENAME);
+                    $titulo = preg_replace('/([a-z])([A-Z])/', '$1 $2', $nombreBase);
+                    $titulo = preg_replace('/[_\-]+/', ' ', $titulo);
+                    $titulo = trim(ucwords(strtolower($titulo)));
                     $libros[] = [
                         'titulo' => $titulo,
                         'autor' => 'Biblioteca de Libros',
@@ -83,7 +86,7 @@ $librosPDF = obtenerLibrosPDF();
 
 </head>
 
-<body onload="hablarBienvenida()">
+<body>
 
 <header>
 
@@ -97,6 +100,10 @@ $librosPDF = obtenerLibrosPDF();
 
 <button onclick="activarBusquedaVoz()">
 🎤 Buscar por Voz
+</button>
+
+<button onclick="pedirLibro()">
+🗣️ ¿Qué libro deseas leer?
 </button>
 
 <button onclick="activarModoOscuro()">
@@ -123,10 +130,15 @@ $librosPDF = obtenerLibrosPDF();
 
 <h2>Explora Miles de Audio Libros</h2>
 
+<div id="mensaje-interactivo" class="mensaje-interactivo" role="status" aria-live="polite">
+Seleccione un libro PDF y pulse Leer PDF para escucharlo. Los libros PDF que subas aparecerán automáticamente en esta biblioteca.
+</div>
+
 <input type="text"
 id="busqueda"
 placeholder="Buscar audiolibro">
 <button class="btn-buscar" onclick="buscarLibrosLocal()">🔎 Buscar audiolibro</button>
+<button class="btn-buscar" onclick="pedirLibro()">🗣️ ¿Qué libro deseas leer?</button>
 <button class="btn-buscar" onclick="mostrarOffline()">🎧 Escuchar sin conexión</button>
 <div id="resultados" class="resultados"></div>
 

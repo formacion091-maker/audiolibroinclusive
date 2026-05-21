@@ -1,20 +1,48 @@
 let idiomaActual = 'es-ES';
 
+function hablar(texto) {
+    if (!('speechSynthesis' in window)) {
+        return;
+    }
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(texto);
+    utter.lang = idiomaActual;
+    const voces = speechSynthesis.getVoices();
+    const vozSeleccionada = voces.find(v => v.lang.startsWith('es')) || voces[0];
+    if (vozSeleccionada) utter.voice = vozSeleccionada;
+    utter.rate = 0.92;
+    speechSynthesis.speak(utter);
+}
+
 function hablarBienvenida(){
-    const mensaje = new SpeechSynthesisUtterance('Bienvenido a la plataforma inclusiva de audiolibros');
-    mensaje.lang = idiomaActual;
-    speechSynthesis.speak(mensaje);
+    const mensaje = 'Bienvenido a la plataforma inclusiva de audiolibros. ' +
+        'Por favor, elige el libro que deseas escuchar y presiona el botón Leer PDF. ' +
+        'También puedes buscar por voz usando el botón que dice Buscar por Voz.';
+    actualizarMensajeInteractivo('Seleccione el libro que desea escuchar y presione Leer PDF.');
+    hablar(mensaje);
 }
 
 function leerPagina(){
     const texto = document.body.innerText;
-    const voz = new SpeechSynthesisUtterance(texto);
-    voz.lang = idiomaActual;
-    speechSynthesis.speak(voz);
+    actualizarMensajeInteractivo('Se está leyendo el contenido visible de la página.');
+    hablar(texto);
 }
 
 function activarModoOscuro(){
     document.body.classList.toggle('dark');
+}
+
+function actualizarMensajeInteractivo(texto) {
+    const mensaje = document.getElementById('mensaje-interactivo');
+    if (mensaje) {
+        mensaje.innerText = texto;
+    }
+}
+
+function pedirLibro(){
+    const mensaje = '¿Qué libro deseas leer hoy? Selecciona un PDF y pulsa el botón Leer PDF para que la página comience a leerlo en voz alta.';
+    actualizarMensajeInteractivo('¿Qué libro desea leer? Seleccione un PDF y pulse Leer PDF.');
+    hablar(mensaje);
 }
 
 function cambiarIdioma(idioma){
@@ -65,7 +93,7 @@ function buscarLibrosLocal(){
     const input = document.getElementById('busqueda');
     const consulta = input ? input.value.trim().toLowerCase() : '';
     const resultados = document.getElementById('resultados');
-    const libros = document.querySelectorAll('.local-libros .libro');
+    const libros = document.querySelectorAll('.contenedor-libros .libro');
 
     if (!libros.length) return;
 
@@ -83,7 +111,7 @@ function buscarLibrosLocal(){
 
     if (resultados) {
         if (!consulta) {
-            resultados.innerHTML = '<p>Mostrando todos los audiolibros disponibles en la página.</p>';
+            resultados.innerHTML = '<p>Mostrando todos los libros disponibles en la biblioteca.</p>';
         } else if (encontrados === 0) {
             resultados.innerHTML = '<p>No se encontraron libros con ese nombre. Prueba otra búsqueda o usa la sección sin conexión.</p>';
         } else {
@@ -103,6 +131,7 @@ async function extraerTextoPdf(url) {
     if (!window.pdfjsLib) {
         throw new Error('pdf.js no está cargado');
     }
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.worker.min.js';
     const loadingTask = pdfjsLib.getDocument(url);
     const pdf = await loadingTask.promise;
     let texto = '';
@@ -174,4 +203,5 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
     buscarLibrosLocal();
+    hablarBienvenida();
 });
