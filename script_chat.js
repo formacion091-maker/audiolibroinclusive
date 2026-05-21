@@ -31,12 +31,30 @@ async function listarLibros() {
 
 function cargarPdfJs() {
   if (window.pdfjsLib) return Promise.resolve();
+  const sources = [
+    'pdfjs/pdf.min.js',
+    'https://cdn.jsdelivr.net/npm/pdfjs-dist@latest/build/pdf.min.js'
+  ];
   return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.min.js';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('No se pudo cargar la librería pdf.js desde CDN'));
-    document.head.appendChild(script);
+    let index = 0;
+    function cargarSiguiente() {
+      if (index >= sources.length) {
+        reject(new Error('No se pudo cargar la librería pdf.js desde los orígenes disponibles'));
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = sources[index++];
+      script.onload = () => {
+        if (window.pdfjsLib) {
+          resolve();
+        } else {
+          cargarSiguiente();
+        }
+      };
+      script.onerror = () => cargarSiguiente();
+      document.head.appendChild(script);
+    }
+    cargarSiguiente();
   });
 }
 
@@ -45,7 +63,7 @@ async function extraerTextoPDF(url) {
   if (!window.pdfjsLib) {
     throw new Error('pdf.js no está cargado');
   }
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.worker.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@latest/build/pdf.worker.min.js';
   const loadingTask = pdfjsLib.getDocument(url);
   const pdf = await loadingTask.promise;
   let texto = '';

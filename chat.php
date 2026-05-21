@@ -34,7 +34,6 @@
 </section>
 </main>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.min.js"></script>
 <script src="script_chat.js"></script>
 </body>
 </html>
