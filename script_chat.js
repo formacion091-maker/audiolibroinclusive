@@ -30,15 +30,24 @@ async function listarLibros() {
 }
 
 async function extraerTextoPDF(url) {
-  // usa pdf.js para extraer texto completo
+  if (!window.pdfjsLib) {
+    throw new Error('pdf.js no está cargado');
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.worker.min.js';
   const loadingTask = pdfjsLib.getDocument(url);
   const pdf = await loadingTask.promise;
   let texto = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
+  const maxPages = Math.min(pdf.numPages, 20);
+  for (let i = 1; i <= maxPages; i++) {
+    mostrarMensajeSistema(`Extrayendo página ${i} de ${pdf.numPages}...`);
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const strings = content.items.map(item => item.str);
     texto += strings.join(' ') + '\n\n';
+  }
+  if (pdf.numPages > maxPages) {
+    mostrarMensajeSistema(`PDF grande: se extrajeron las primeras ${maxPages} páginas para cargar rápido.`);
+    texto += '\n\n[El PDF completo no se extrajo para mantener el tiempo de carga rápido.]';
   }
   return texto;
 }
@@ -54,6 +63,15 @@ function hablar(text) {
   if (pref) utter.voice = pref;
   speechSynthesis.cancel();
   speechSynthesis.speak(utter);
+}
+
+function mostrarCargando(texto) {
+  const indicador = document.getElementById('loading-indicator');
+  if (indicador) indicador.textContent = texto;
+}
+
+function ocultarCargando() {
+  mostrarCargando('');
 }
 
 async function enviarChat(message, system="Eres un asistente que ayuda a leer y resumir libros PDF en español."){
@@ -86,17 +104,28 @@ async function enviarChat(message, system="Eres un asistente que ayuda a leer y 
 async function cargarLibroSeleccionado(archivo) {
   if (!archivo) return;
   mostrarMensajeSistema('Cargando el PDF seleccionado...');
+  mostrarCargando('Por favor espera, la carga puede tardar unos segundos.');
   document.getElementById('btn-leer').disabled = true;
   document.getElementById('btn-chatgpt').disabled = true;
-  const url = 'libros/' + archivo;
-  window._lastExtractedText = await extraerTextoPDF(url);
-  document.getElementById('btn-leer').disabled = false;
-  document.getElementById('btn-chatgpt').disabled = false;
-  mostrarMensajeSistema('PDF cargado y listo para leer. Puedes usar Leer en voz alta o Enviar a ChatGPT.');
-  if (window._lastExtractedText.length > 200) {
-    mostrarMensajeSistema('Texto extraído: ' + window._lastExtractedText.slice(0,200) + '...');
-  } else {
-    mostrarMensajeSistema('Texto extraído: ' + window._lastExtractedText);
+  const url = 'libros/' + encodeURIComponent(archivo);
+  try {
+    window._lastExtractedText = await extraerTextoPDF(url);
+    document.getElementById('btn-leer').disabled = false;
+    document.getElementById('btn-chatgpt').disabled = false;
+    mostrarMensajeSistema('PDF cargado y listo para leer. Puedes usar Leer en voz alta o Enviar a ChatGPT.');
+    if (window._lastExtractedText.length > 200) {
+      mostrarMensajeSistema('Texto extraído: ' + window._lastExtractedText.slice(0,200) + '...');
+    } else {
+      mostrarMensajeSistema('Texto extraído: ' + window._lastExtractedText);
+    }
+  } catch (error) {
+    const mensajeError = 'No se pudo cargar el PDF: ' + (error.message || error);
+    mostrarMensajeSistema(mensajeError);
+    alert(mensajeError);
+    document.getElementById('btn-leer').disabled = true;
+    document.getElementById('btn-chatgpt').disabled = true;
+  } finally {
+    ocultarCargando();
   }
   return window._lastExtractedText;
 }
