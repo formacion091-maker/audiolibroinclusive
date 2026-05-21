@@ -29,7 +29,19 @@ async function listarLibros() {
   });
 }
 
+function cargarPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.172/pdf.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('No se pudo cargar la librería pdf.js desde CDN'));
+    document.head.appendChild(script);
+  });
+}
+
 async function extraerTextoPDF(url) {
+  await cargarPdfJs();
   if (!window.pdfjsLib) {
     throw new Error('pdf.js no está cargado');
   }
@@ -84,12 +96,19 @@ async function enviarChat(message, system="Eres un asistente que ayuda a leer y 
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({message, system})
   });
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch (err) {
+    data = { error: 'Respuesta inválida del servidor: ' + err.message };
+  }
+
   let content = '';
   if (data && data.choices && data.choices[0] && data.choices[0].message) {
     content = data.choices[0].message.content;
   } else if (data && data.error) {
-    content = 'Error: ' + data.error;
+    const errorValue = typeof data.error === 'object' ? JSON.stringify(data.error) : data.error;
+    content = 'Error: ' + errorValue;
   } else {
     content = JSON.stringify(data);
   }
