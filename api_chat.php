@@ -10,6 +10,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Validar que la clave de API esté configurada
+if (!defined('OPENAI_API_KEY') || OPENAI_API_KEY === 'pon_aqui_tu_clave_openai' || empty(OPENAI_API_KEY)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'Clave de API de OpenAI no configurada. Por favor, edita config.php y agrega tu clave de API válida desde https://platform.openai.com/account/api-keys']);
+    exit;
+}
+
 $input = json_decode(file_get_contents('php://input'), true);
 if (!$input || !isset($input['message'])) {
     http_response_code(400);
