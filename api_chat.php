@@ -59,13 +59,43 @@ $api_key = getenv('OPENAI_API_KEY');
 if (!$api_key && defined('OPENAI_API_KEY')) {
     $api_key = OPENAI_API_KEY;
 }
-if (!$api_key || $api_key === 'pon_aqui_tu_clave_openai') {
-    send_json(['error' => 'Clave de API de OpenAI no configurada. Por favor, exporta la variable de entorno OPENAI_API_KEY o edita config.php con tu clave desde https://platform.openai.com/account/api-keys'], 400);
-}
 
 $input = json_decode(file_get_contents('php://input'), true);
 if (!$input || !isset($input['message'])) {
     send_json(['error' => 'Missing message'], 400);
+}
+
+function local_summary($text) {
+    $text = trim($text);
+    if ($text === '') {
+        return 'No hay texto disponible para resumir.';
+    }
+    // Extrae hasta 4 frases simples del texto
+    $sentences = preg_split('/(?<=[\.\?!])\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+    if ($sentences && count($sentences) > 0) {
+        $summary = '';
+        $count = 0;
+        foreach ($sentences as $sentence) {
+            if ($count >= 4) break;
+            $summary .= trim($sentence) . ' ';
+            $count++;
+        }
+        $summary = trim($summary);
+        if (strlen($summary) > 1500) {
+            $summary = substr($summary, 0, 1500) . '...';
+        }
+        return 'Resumen local:
+' . $summary;
+    }
+    $short = mb_substr($text, 0, 1200);
+    return 'Resumen local:
+' . trim($short) . (mb_strlen($text) > 1200 ? '...' : '');
+}
+
+if (!$api_key || $api_key === 'pon_aqui_tu_clave_openai') {
+    $message = $input['message'];
+    $fallback = local_summary($message);
+    send_json(['choices' => [['message' => ['content' => $fallback]]]], 200);
 }
 
 $message = $input['message'];
