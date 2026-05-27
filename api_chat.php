@@ -14,20 +14,6 @@ set_error_handler(function($severity, $message, $file, $line) use (&$php_warning
     return true; // prevent PHP internal handler from outputting HTML
 });
 
-register_shutdown_function(function() {
-    $err = error_get_last();
-    if ($err) {
-        if (!headers_sent()) header('Content-Type: application/json', true, 500);
-        // clear any buffered output
-        @ob_end_clean();
-        echo json_encode(['error' => 'Fatal PHP error', 'details' => $err]);
-        exit;
-    }
-});
-
-// Proxy mínimo para OpenAI Chat Completions
-require_once 'config.php';
-
 function send_json($data, $status = 200) {
     global $php_warnings;
     // capture any buffered output
@@ -44,6 +30,25 @@ function send_json($data, $status = 200) {
     echo json_encode($data);
     exit;
 }
+
+register_shutdown_function(function() {
+    $err = error_get_last();
+    if ($err) {
+        // clear any buffered output
+        @ob_end_clean();
+        // Use send_json to ensure consistent JSON response
+        if (function_exists('send_json')) {
+            send_json(['error' => 'Fatal PHP error', 'details' => $err], 500);
+        } else {
+            if (!headers_sent()) header('Content-Type: application/json', true, 500);
+            echo json_encode(['error' => 'Fatal PHP error', 'details' => $err]);
+        }
+        exit;
+    }
+});
+
+// Proxy mínimo para OpenAI Chat Completions
+require_once 'config.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     send_json(['error' => 'Method not allowed'], 405);
