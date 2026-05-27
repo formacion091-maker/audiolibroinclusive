@@ -109,10 +109,17 @@ async function enviarChat(message, system="Eres un asistente que ayuda a leer y 
   const divUser = document.createElement('div'); divUser.textContent = 'Tú: ' + message; divUser.style.margin='8px 0'; mensajes.appendChild(divUser);
   mensajes.scrollTop = mensajes.scrollHeight;
 
+  const payload = {message, system};
+  if (window._lastExtractedText) {
+    payload.pdfText = window._lastExtractedText.length > 11000
+      ? window._lastExtractedText.slice(0, 11000)
+      : window._lastExtractedText;
+  }
+
   const res = await fetch('api_chat.php', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({message, system})
+    body: JSON.stringify(payload)
   });
   let data;
   try {

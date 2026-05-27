@@ -65,6 +65,9 @@ if (!$input || !isset($input['message'])) {
     send_json(['error' => 'Missing message'], 400);
 }
 
+$pdfText = isset($input['pdfText']) ? trim($input['pdfText']) : '';
+$message = trim($input['message']);
+
 function normalize_text($text) {
     $text = trim($text);
     $text = preg_replace('/\s+/', ' ', $text);
@@ -166,19 +169,25 @@ function local_summary($text) {
 }
 
 if (!$api_key || $api_key === 'pon_aqui_tu_clave_openai') {
-    $message = $input['message'];
-    $fallback = local_summary($message);
+    if ($pdfText === '') {
+        send_json(['choices' => [['message' => ['content' => 'No hay texto de PDF disponible para resumir. Carga primero un PDF y luego pide el resumen.']]]], 200);
+    }
+    $fallback = local_summary($pdfText);
     send_json(['choices' => [['message' => ['content' => $fallback]]]], 200);
 }
 
-$message = $input['message'];
 $system_prompt = isset($input['system']) ? $input['system'] : "Eres un asistente útil, responde con claridad y en español cuando sea necesario.";
+
+$user_content = $message;
+if ($pdfText !== '') {
+    $user_content .= "\n\nTexto del PDF:\n" . mb_substr($pdfText, 0, 10000);
+}
 
 $payload = [
     'model' => 'gpt-4o-mini',
     'messages' => [
         ['role' => 'system', 'content' => $system_prompt],
-        ['role' => 'user', 'content' => $message]
+        ['role' => 'user', 'content' => $user_content]
     ],
     'max_tokens' => 1500,
     'temperature' => 0.7
