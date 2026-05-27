@@ -65,31 +65,104 @@ if (!$input || !isset($input['message'])) {
     send_json(['error' => 'Missing message'], 400);
 }
 
-function local_summary($text) {
+function normalize_text($text) {
     $text = trim($text);
-    if ($text === '') {
+    $text = preg_replace('/\s+/', ' ', $text);
+    return $text;
+}
+
+function extract_document_text($text) {
+    $text = str_replace(["\r\n", "\r"], "\n", $text);
+    $parts = preg_split('/\n{2,}/', $text, 2);
+    if (count($parts) === 2 && trim($parts[1]) !== '') {
+        return trim($parts[1]);
+    }
+    $markers = [
+        'Lee en voz alta o resume el contenido siguiente',
+        'Lee en voz alta o resume el contenido siguiente, mantén un tono claro y pausado:',
+        'Lee en voz alta o resume el contenido siguiente, mantén un tono claro y pausado',
+        'Resume el contenido siguiente',
+        'Resumen local:'
+    ];
+    foreach ($markers as $marker) {
+        $pos = mb_stripos($text, $marker);
+        if ($pos !== false) {
+            $body = trim(mb_substr($text, $pos + mb_strlen($marker)));
+            if ($body !== '') {
+                return $body;
+            }
+        }
+    }
+    return normalize_text($text);
+}
+
+function split_sentences($text) {
+    $sentences = preg_split('/(?<=[\.\!\?])\s+/u', trim($text), -1, PREG_SPLIT_NO_EMPTY);
+    return $sentences ?: [];
+}
+
+function sentence_score($sentence, $frequencies) {
+    $words = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($sentence), -1, PREG_SPLIT_NO_EMPTY);
+    $score = 0;
+    foreach ($words as $word) {
+        if (isset($frequencies[$word])) {
+            $score += $frequencies[$word];
+        }
+    }
+    return $score / max(1, count($words));
+}
+
+function build_word_frequencies($text) {
+    $words = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($text), -1, PREG_SPLIT_NO_EMPTY);
+    $stopwords = [
+        'de','la','que','el','en','y','a','los','del','se','las','por','un','para','con','no','una','su','al','lo',
+        'como','más','pero','sus','le','ya','o','este','sí','porque','esta','entre','cuando','muy','sin','sobre',
+        'también','me','hasta','hay','donde','quien','desde','todo','nos','durante','todos','uno','les','ni','contra',
+        'otros','ese','eso','ante','ellos','e','esto','mí','antes','algunos','qué','unos','yo','otro','otras','otra',
+        'él','tanto','esa','estos','mucho','quienes','nada','muchos','cual','poco','ella','estar','estas','algunas','algo',
+        'nosotros','mi','mis','tú','te','ti','tu','tus','ellas','nosotras','vosotros','vosotras','os','mío','mía','míos',
+        'mías','tuyo','tuya','tuyos','tuyas','suyo','suya','suyos','suyas','nuestro','nuestra','nuestros','nuestras',
+        'vuestro','vuestra','vuestros','vuestras','es','son','fue','era','ser','era','tambien','este','esta','estas'
+    ];
+    $freq = [];
+    foreach ($words as $word) {
+        if ($word === '' || in_array($word, $stopwords, true)) {
+            continue;
+        }
+        $freq[$word] = ($freq[$word] ?? 0) + 1;
+    }
+    return $freq;
+}
+
+function local_summary($text) {
+    $fullText = extract_document_text($text);
+    if ($fullText === '') {
         return 'No hay texto disponible para resumir.';
     }
-    // Extrae hasta 4 frases simples del texto
-    $sentences = preg_split('/(?<=[\.\?!])\s+/', $text, -1, PREG_SPLIT_NO_EMPTY);
-    if ($sentences && count($sentences) > 0) {
-        $summary = '';
-        $count = 0;
-        foreach ($sentences as $sentence) {
-            if ($count >= 4) break;
-            $summary .= trim($sentence) . ' ';
-            $count++;
-        }
-        $summary = trim($summary);
-        if (strlen($summary) > 1500) {
-            $summary = substr($summary, 0, 1500) . '...';
-        }
+    $sentences = split_sentences($fullText);
+    if (count($sentences) <= 4) {
         return 'Resumen local:
-' . $summary;
+' . trim(implode(' ', $sentences));
     }
-    $short = mb_substr($text, 0, 1200);
+    $frequencies = build_word_frequencies($fullText);
+    $scored = [];
+    foreach ($sentences as $idx => $sentence) {
+        $score = sentence_score($sentence, $frequencies);
+        $scored[] = ['idx' => $idx, 'score' => $score, 'sentence' => trim($sentence)];
+    }
+    usort($scored, function($a, $b) {
+        return $b['score'] <=> $a['score'];
+    });
+    $chosen = array_slice($scored, 0, min(5, count($scored)));
+    usort($chosen, function($a, $b) {
+        return $a['idx'] <=> $b['idx'];
+    });
+    $summary = implode(' ', array_column($chosen, 'sentence'));
+    if (mb_strlen($summary) > 1500) {
+        $summary = mb_substr($summary, 0, 1500) . '...';
+    }
     return 'Resumen local:
-' . trim($short) . (mb_strlen($text) > 1200 ? '...' : '');
+' . trim($summary);
 }
 
 if (!$api_key || $api_key === 'pon_aqui_tu_clave_openai') {
