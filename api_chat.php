@@ -54,16 +54,34 @@ curl_close($ch);
 
 if ($err) {
     http_response_code(500);
-    echo json_encode(['error' => 'Curl error: '.$err]);
+    echo json_encode(['error' => 'Curl error: ' . $err]);
     exit;
 }
+
+$decoded = json_decode($response, true);
 
 if ($code < 200 || $code >= 300) {
     http_response_code($code);
-    echo $response;
+    if ($decoded) {
+        // Forward structured error from OpenAI when available
+        echo json_encode($decoded);
+    } else {
+        // Ensure we always return JSON (wrap non-JSON bodies)
+        echo json_encode([
+            'error' => 'OpenAI API returned an error',
+            'status' => $code,
+            'body' => $response
+        ]);
+    }
     exit;
 }
 
-echo $response;
+// Normal success: ensure output is valid JSON
+if ($decoded) {
+    echo json_encode($decoded);
+} else {
+    // If API returned non-JSON for some reason, wrap it
+    echo json_encode(['result' => $response]);
+}
 
 ?>
