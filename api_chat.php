@@ -54,9 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     send_json(['error' => 'Method not allowed'], 405);
 }
 
-// Validar que la clave de API esté configurada
-if (!defined('OPENAI_API_KEY') || OPENAI_API_KEY === 'pon_aqui_tu_clave_openai' || empty(OPENAI_API_KEY)) {
-    send_json(['error' => 'Clave de API de OpenAI no configurada. Por favor, edita config.php y agrega tu clave de API válida desde https://platform.openai.com/account/api-keys'], 400);
+// Prefer environment variable for API key, fallback to config constant
+$api_key = getenv('OPENAI_API_KEY');
+if (!$api_key && defined('OPENAI_API_KEY')) {
+    $api_key = OPENAI_API_KEY;
+}
+if (!$api_key || $api_key === 'pon_aqui_tu_clave_openai') {
+    send_json(['error' => 'Clave de API de OpenAI no configurada. Por favor, exporta la variable de entorno OPENAI_API_KEY o edita config.php con tu clave desde https://platform.openai.com/account/api-keys'], 400);
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
@@ -83,7 +87,7 @@ curl_setopt($ch, CURLOPT_POST, true);
 curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
     'Content-Type: application/json',
-    'Authorization: Bearer ' . OPENAI_API_KEY
+    'Authorization: Bearer ' . $api_key
 ]);
 curl_setopt($ch, CURLOPT_TIMEOUT, OPENAI_TIMEOUT);
 
