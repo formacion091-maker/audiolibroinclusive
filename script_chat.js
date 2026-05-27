@@ -108,6 +108,13 @@ function hablar(text) {
     isPaused = false;
     pausedOffset = 0;
   };
+  currentUtterance.onstart = () => {
+    const pauseBtn = document.getElementById('btn-pause');
+    if (pauseBtn) {
+      pauseBtn.disabled = false;
+      pauseBtn.textContent = '⏸ Pausar lectura';
+    }
+  };
   currentUtterance.onboundary = (event) => {
     if (event.name === 'word') {
       pausedOffset = event.charIndex;

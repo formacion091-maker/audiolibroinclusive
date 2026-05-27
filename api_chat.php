@@ -179,7 +179,26 @@ function local_summary($text) {
 
 if (!$api_key || $api_key === 'pon_aqui_tu_clave_openai') {
     if ($pdfText === '') {
-        send_json(['choices' => [['message' => ['content' => 'No hay texto de PDF disponible para resumir. Carga primero un PDF y luego pide el resumen.']]]], 200);
+        $filename = isset($input['filename']) ? $input['filename'] : '';
+        $safe = $filename ? basename($filename) : '';
+        $cachePath = $safe ? (__DIR__ . '/cache/' . $safe . '.txt') : '';
+        $cache_exists = $cachePath ? file_exists($cachePath) : false;
+        $libroPath = $safe ? (__DIR__ . '/libros/' . $safe) : '';
+        $libro_exists = $libroPath ? file_exists($libroPath) : false;
+
+        // Return helpful diagnostic info so we can see why no text arrived
+        send_json([
+            'choices' => [[ 'message' => ['content' => 'No hay texto de PDF disponible para resumir. Carga primero un PDF y luego pide el resumen.'] ]],
+            'debug' => [
+                'received_pdfText' => false,
+                'pdfText_length' => 0,
+                'filename_sent' => $filename,
+                'cache_exists' => $cache_exists,
+                'cache_path' => $cache_exists ? ('cache/' . $safe . '.txt') : null,
+                'libro_exists' => $libro_exists,
+                'libro_path' => $libro_exists ? ('libros/' . $safe) : null
+            ]
+        ], 200);
     }
     $fallback = local_summary($pdfText);
     send_json(['choices' => [['message' => ['content' => $fallback]]]], 200);
