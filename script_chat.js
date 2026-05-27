@@ -82,68 +82,105 @@ async function extraerTextoPDF(url) {
   return texto;
 }
 
-let currentUtterance = null;
+// Robust chunked reader to support pause/resume reliably across browsers
+let readingChunks = [];
+let readingIndex = 0;
 let isPaused = false;
-let pausedText = '';
-let pausedOffset = 0;
+let isReading = false;
+
+function splitIntoChunks(text, maxLen = 1200) {
+  text = text.replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLen) return [text];
+  const parts = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(start + maxLen, text.length);
+    if (end < text.length) {
+      // try to cut at last sentence end or space
+      const sub = text.slice(start, end + 100);
+      const m = sub.match(/([\.\!\?])[^\.\!\?]*$/);
+      if (m && m.index) {
+        end = start + m.index + 1;
+      } else {
+        const lastSpace = text.lastIndexOf(' ', end);
+        if (lastSpace > start) end = lastSpace;
+      }
+    }
+    parts.push(text.slice(start, end).trim());
+    start = end;
+  }
+  return parts;
+}
+
+function speakNextChunk() {
+  if (!('speechSynthesis' in window)) return;
+  if (readingIndex >= readingChunks.length) {
+    // finished
+    isReading = false;
+    const pauseBtn = document.getElementById('btn-pause');
+    if (pauseBtn) { pauseBtn.disabled = true; pauseBtn.textContent = '⏸ Pausar lectura'; }
+    return;
+  }
+  const chunk = readingChunks[readingIndex];
+  const u = new SpeechSynthesisUtterance(chunk);
+  u.rate = 0.92;
+  u.lang = 'es-ES';
+  const voices = speechSynthesis.getVoices();
+  const pref = voices.find(v => v.lang.startsWith('es')) || voices[0];
+  if (pref) u.voice = pref;
+  u.onend = () => {
+    readingIndex++;
+    if (!isPaused) speakNextChunk();
+    else isReading = false;
+  };
+  u.onerror = () => {
+    readingIndex++;
+    if (!isPaused) speakNextChunk();
+  };
+  isReading = true;
+  const pauseBtn = document.getElementById('btn-pause');
+  if (pauseBtn) { pauseBtn.disabled = false; pauseBtn.textContent = '⏸ Pausar lectura'; }
+  speechSynthesis.speak(u);
+}
 
 function hablar(text) {
   if (!('speechSynthesis' in window)) return;
-  if (speechSynthesis.speaking) {
-    speechSynthesis.cancel();
-  }
+  stopReading();
+  readingChunks = splitIntoChunks(text, 1200);
+  readingIndex = 0;
   isPaused = false;
-  pausedText = text;
-  pausedOffset = 0;
-  currentUtterance = new SpeechSynthesisUtterance(text);
-  currentUtterance.rate = 0.92;
-  currentUtterance.lang = 'es-ES';
-  const voices = speechSynthesis.getVoices();
-  const pref = voices.find(v => v.lang.startsWith('es')) || voices[0];
-  if (pref) currentUtterance.voice = pref;
-  currentUtterance.onend = () => {
-    document.getElementById('btn-pause').textContent = '⏸ Pausar lectura';
-    document.getElementById('btn-pause').disabled = true;
-    currentUtterance = null;
-    isPaused = false;
-    pausedOffset = 0;
-  };
-  currentUtterance.onstart = () => {
-    const pauseBtn = document.getElementById('btn-pause');
-    if (pauseBtn) {
-      pauseBtn.disabled = false;
-      pauseBtn.textContent = '⏸ Pausar lectura';
-    }
-  };
-  currentUtterance.onboundary = (event) => {
-    if (event.name === 'word') {
-      pausedOffset = event.charIndex;
-    }
-  };
-  speechSynthesis.speak(currentUtterance);
+  speakNextChunk();
 }
 
 function togglePause() {
   if (!('speechSynthesis' in window)) return;
   const pauseBtn = document.getElementById('btn-pause');
-  if (speechSynthesis.speaking && !speechSynthesis.paused) {
-    speechSynthesis.pause();
+  if (isReading && !isPaused) {
+    // Try native pause; if not supported, cancel and keep index
+    try { speechSynthesis.pause(); } catch(e) { speechSynthesis.cancel(); }
     isPaused = true;
-    pauseBtn.textContent = '▶ Continuar lectura';
-  } else if (speechSynthesis.paused) {
-    speechSynthesis.resume();
+    if (pauseBtn) pauseBtn.textContent = '▶ Continuar lectura';
+  } else if (isPaused) {
+    // resume
+    try { speechSynthesis.resume(); } catch(e) {
+      // If resume not supported, continue from current index
+      isPaused = false;
+      speakNextChunk();
+    }
     isPaused = false;
-    pauseBtn.textContent = '⏸ Pausar lectura';
+    if (pauseBtn) pauseBtn.textContent = '⏸ Pausar lectura';
   }
 }
 
 function stopReading() {
   if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  currentUtterance = null;
+  readingChunks = [];
+  readingIndex = 0;
   isPaused = false;
-  pausedOffset = 0;
-  document.getElementById('btn-pause').textContent = '⏸ Pausar lectura';
+  isReading = false;
+  const pauseBtn = document.getElementById('btn-pause');
+  if (pauseBtn) { pauseBtn.disabled = true; pauseBtn.textContent = '⏸ Pausar lectura'; }
 }
 
 function mostrarCargando(texto) {
