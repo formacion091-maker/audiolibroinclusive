@@ -20,7 +20,9 @@
   <select id="select-libro"></select>
   <button id="btn-cargar">Cargar y extraer texto</button>
   <button id="btn-leer" disabled>🔊 Leer en voz alta</button>
-  <button id="btn-chatgpt" disabled>💬 Enviar a ChatGPT</button>
+  <button id="btn-pause" disabled>⏸ Pausar lectura</button>
+  <button id="btn-chatgpt" disabled>💬 Resumir PDF cargado</button>
+  <button id="btn-resumen-rapido" disabled>⚡ Resumen rápido</button>
   <label style="margin-left:12px;"><input type="checkbox" id="voice-toggle" checked> Activar modo voz</label>
   <div id="loading-indicator" style="margin-top:12px;color:#f8fafc;font-style:italic;"></div>
 

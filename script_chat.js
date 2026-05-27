@@ -82,17 +82,61 @@ async function extraerTextoPDF(url) {
   return texto;
 }
 
+let currentUtterance = null;
+let isPaused = false;
+let pausedText = '';
+let pausedOffset = 0;
+
 function hablar(text) {
   if (!('speechSynthesis' in window)) return;
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.92;
-  utter.lang = 'es-ES';
-  // seleccionar voz preferida si existe
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+  }
+  isPaused = false;
+  pausedText = text;
+  pausedOffset = 0;
+  currentUtterance = new SpeechSynthesisUtterance(text);
+  currentUtterance.rate = 0.92;
+  currentUtterance.lang = 'es-ES';
   const voices = speechSynthesis.getVoices();
   const pref = voices.find(v => v.lang.startsWith('es')) || voices[0];
-  if (pref) utter.voice = pref;
+  if (pref) currentUtterance.voice = pref;
+  currentUtterance.onend = () => {
+    document.getElementById('btn-pause').textContent = '⏸ Pausar lectura';
+    document.getElementById('btn-pause').disabled = true;
+    currentUtterance = null;
+    isPaused = false;
+    pausedOffset = 0;
+  };
+  currentUtterance.onboundary = (event) => {
+    if (event.name === 'word') {
+      pausedOffset = event.charIndex;
+    }
+  };
+  speechSynthesis.speak(currentUtterance);
+}
+
+function togglePause() {
+  if (!('speechSynthesis' in window)) return;
+  const pauseBtn = document.getElementById('btn-pause');
+  if (speechSynthesis.speaking && !speechSynthesis.paused) {
+    speechSynthesis.pause();
+    isPaused = true;
+    pauseBtn.textContent = '▶ Continuar lectura';
+  } else if (speechSynthesis.paused) {
+    speechSynthesis.resume();
+    isPaused = false;
+    pauseBtn.textContent = '⏸ Pausar lectura';
+  }
+}
+
+function stopReading() {
+  if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  speechSynthesis.speak(utter);
+  currentUtterance = null;
+  isPaused = false;
+  pausedOffset = 0;
+  document.getElementById('btn-pause').textContent = '⏸ Pausar lectura';
 }
 
 function mostrarCargando(texto) {
@@ -151,12 +195,16 @@ async function cargarLibroSeleccionado(archivo) {
   mostrarCargando('Por favor espera, la carga puede tardar unos segundos.');
   document.getElementById('btn-leer').disabled = true;
   document.getElementById('btn-chatgpt').disabled = true;
+  document.getElementById('btn-resumen-rapido').disabled = true;
+  document.getElementById('btn-pause').disabled = true;
   const url = 'libros/' + encodeURIComponent(archivo);
   try {
     window._lastExtractedText = await extraerTextoPDF(url);
     document.getElementById('btn-leer').disabled = false;
     document.getElementById('btn-chatgpt').disabled = false;
-    mostrarMensajeSistema('PDF cargado y listo para leer. Puedes usar Leer en voz alta o Enviar a ChatGPT.');
+    document.getElementById('btn-resumen-rapido').disabled = false;
+    document.getElementById('btn-pause').disabled = false;
+    mostrarMensajeSistema('PDF cargado y listo para leer. Puedes usar Leer en voz alta, Resumen rápido o Resumir PDF cargado.');
     if (window._lastExtractedText.length > 200) {
       mostrarMensajeSistema('Texto extraído: ' + window._lastExtractedText.slice(0,200) + '...');
     } else {
@@ -197,14 +245,22 @@ window.addEventListener('load', async ()=>{
   document.getElementById('btn-leer').addEventListener('click', ()=>{
     if (!window._lastExtractedText) return alert('Cargue el libro primero');
     hablar(window._lastExtractedText);
+    document.getElementById('btn-pause').disabled = false;
+  });
+
+  document.getElementById('btn-pause').addEventListener('click', ()=>{
+    togglePause();
   });
 
   document.getElementById('btn-chatgpt').addEventListener('click', async ()=>{
     if (!window._lastExtractedText) return alert('Cargue el libro primero');
-    const textoParaIA = window._lastExtractedText.length > 11000
-      ? window._lastExtractedText.slice(0,11000) + '\n\n[Texto truncado para que la IA pueda procesarlo]'
-      : window._lastExtractedText;
-    const prompt = 'Lee en voz alta o resume el contenido siguiente, mantén un tono claro y pausado:\n\n' + textoParaIA;
+    const prompt = 'Resume en español el contenido del libro cargado. Usa la información del PDF extraído para crear un resumen claro, breve y ordenado.';
+    await enviarChat(prompt);
+  });
+
+  document.getElementById('btn-resumen-rapido').addEventListener('click', async ()=>{
+    if (!window._lastExtractedText) return alert('Cargue el libro primero');
+    const prompt = 'Genera un resumen rápido en español del libro cargado. Resume en pocas frases los puntos más importantes del contenido.';
     await enviarChat(prompt);
   });
 
