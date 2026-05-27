@@ -155,9 +155,12 @@ async function enviarChat(message, system="Eres un asistente que ayuda a leer y 
 
   const payload = {message, system};
   if (window._lastExtractedText) {
-    payload.pdfText = window._lastExtractedText.length > 11000
-      ? window._lastExtractedText.slice(0, 11000)
+    payload.pdfText = window._lastExtractedText.length > 20000
+      ? window._lastExtractedText.slice(0, 20000)
       : window._lastExtractedText;
+  }
+  if (window._lastExtractedFile) {
+    payload.filename = window._lastExtractedFile;
   }
 
   const res = await fetch('api_chat.php', {
@@ -200,6 +203,20 @@ async function cargarLibroSeleccionado(archivo) {
   const url = 'libros/' + encodeURIComponent(archivo);
   try {
     window._lastExtractedText = await extraerTextoPDF(url);
+    // store the filename for server-side caching
+    window._lastExtractedFile = archivo;
+    // send extracted text to server to cache (best-effort)
+    try {
+      fetch('cache_pdf.php', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({filename: archivo, text: window._lastExtractedText})
+      }).then(r => r.json()).then(j=>{
+        if (j && j.ok) mostrarMensajeSistema('Texto guardado en caché en servidor.');
+      }).catch(()=>{});
+    } catch(e) {
+      // ignore caching errors
+    }
     document.getElementById('btn-leer').disabled = false;
     document.getElementById('btn-chatgpt').disabled = false;
     document.getElementById('btn-resumen-rapido').disabled = false;

@@ -68,6 +68,15 @@ if (!$input || !isset($input['message'])) {
 $pdfText = isset($input['pdfText']) ? trim($input['pdfText']) : '';
 $message = trim($input['message']);
 
+// If no pdfText was sent but a filename was provided, try to load cached text on server
+if ($pdfText === '' && isset($input['filename']) && $input['filename'] !== '') {
+    $safe = basename($input['filename']);
+    $cachePath = __DIR__ . '/cache/' . $safe . '.txt';
+    if (file_exists($cachePath)) {
+        $pdfText = trim(file_get_contents($cachePath));
+    }
+}
+
 function normalize_text($text) {
     $text = trim($text);
     $text = preg_replace('/\s+/', ' ', $text);
