@@ -82,105 +82,90 @@ async function extraerTextoPDF(url) {
   return texto;
 }
 
-// Robust chunked reader to support pause/resume reliably across browsers
-let readingChunks = [];
-let readingIndex = 0;
-let isPaused = false;
-let isReading = false;
-
-function splitIntoChunks(text, maxLen = 1200) {
-  text = text.replace(/\s+/g, ' ').trim();
-  if (text.length <= maxLen) return [text];
-  const parts = [];
-  let start = 0;
-  while (start < text.length) {
-    let end = Math.min(start + maxLen, text.length);
-    if (end < text.length) {
-      // try to cut at last sentence end or space
-      const sub = text.slice(start, end + 100);
-      const m = sub.match(/([\.\!\?])[^\.\!\?]*$/);
-      if (m && m.index) {
-        end = start + m.index + 1;
-      } else {
-        const lastSpace = text.lastIndexOf(' ', end);
-        if (lastSpace > start) end = lastSpace;
-      }
-    }
-    parts.push(text.slice(start, end).trim());
-    start = end;
-  }
-  return parts;
-}
-
-function speakNextChunk() {
-  if (!('speechSynthesis' in window)) return;
-  if (readingIndex >= readingChunks.length) {
-    // finished
-    isReading = false;
-    const pauseBtn = document.getElementById('btn-pause');
-    if (pauseBtn) { pauseBtn.disabled = true; pauseBtn.textContent = '⏸ Pausar lectura'; }
-    return;
-  }
-  const chunk = readingChunks[readingIndex];
-  const u = new SpeechSynthesisUtterance(chunk);
-  u.rate = 0.92;
-  u.lang = 'es-ES';
-  const voices = speechSynthesis.getVoices();
-  const pref = voices.find(v => v.lang.startsWith('es')) || voices[0];
-  if (pref) u.voice = pref;
-  u.onend = () => {
-    readingIndex++;
-    if (!isPaused) speakNextChunk();
-    else isReading = false;
-  };
-  u.onerror = () => {
-    readingIndex++;
-    if (!isPaused) speakNextChunk();
-  };
-  isReading = true;
-  const pauseBtn = document.getElementById('btn-pause');
-  if (pauseBtn) { pauseBtn.disabled = false; pauseBtn.textContent = '⏸ Pausar lectura'; }
-  speechSynthesis.speak(u);
-}
+// Simple, reliable speech synthesis with pause/resume
+let currentUtterance = null;
+let isSpeaking = false;
 
 function hablar(text) {
-  if (!('speechSynthesis' in window)) return;
-  stopReading();
-  readingChunks = splitIntoChunks(text, 1200);
-  readingIndex = 0;
-  isPaused = false;
-  speakNextChunk();
+  if (!('speechSynthesis' in window)) {
+    alert('Tu navegador no soporta síntesis de voz');
+    return;
+  }
+  
+  // Cancelar lectura anterior
+  speechSynthesis.cancel();
+  isSpeaking = false;
+  
+  // Crear nueva utterance
+  currentUtterance = new SpeechSynthesisUtterance(text);
+  currentUtterance.rate = 0.92;
+  currentUtterance.lang = 'es-ES';
+  
+  // Seleccionar voz en español si existe
+  const voices = speechSynthesis.getVoices();
+  const prefVoice = voices.find(v => v.lang.startsWith('es')) || voices[0];
+  if (prefVoice) currentUtterance.voice = prefVoice;
+  
+  // Eventos
+  currentUtterance.onstart = () => {
+    isSpeaking = true;
+    const btn = document.getElementById('btn-pause');
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⏸ Pausar lectura';
+    }
+  };
+  
+  currentUtterance.onend = () => {
+    isSpeaking = false;
+    const btn = document.getElementById('btn-pause');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏸ Pausar lectura';
+    }
+  };
+  
+  currentUtterance.onerror = () => {
+    isSpeaking = false;
+    const btn = document.getElementById('btn-pause');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏸ Pausar lectura';
+    }
+  };
+  
+  // Iniciar lectura
+  speechSynthesis.speak(currentUtterance);
 }
 
 function togglePause() {
   if (!('speechSynthesis' in window)) return;
-  const pauseBtn = document.getElementById('btn-pause');
-  if (isReading && !isPaused) {
-    // Try native pause; if not supported, cancel and keep index
-    try { speechSynthesis.pause(); } catch(e) { speechSynthesis.cancel(); }
-    isPaused = true;
-    if (pauseBtn) pauseBtn.textContent = '▶ Continuar lectura';
-  } else if (isPaused) {
-    // resume
-    try { speechSynthesis.resume(); } catch(e) {
-      // If resume not supported, continue from current index
-      isPaused = false;
-      speakNextChunk();
-    }
-    isPaused = false;
-    if (pauseBtn) pauseBtn.textContent = '⏸ Pausar lectura';
+  
+  const btn = document.getElementById('btn-pause');
+  if (!btn) return;
+  
+  // Si está hablando y no en pausa
+  if (speechSynthesis.speaking && !speechSynthesis.paused) {
+    speechSynthesis.pause();
+    btn.textContent = '▶ Continuar lectura';
+  } 
+  // Si está en pausa
+  else if (speechSynthesis.paused) {
+    speechSynthesis.resume();
+    btn.textContent = '⏸ Pausar lectura';
   }
 }
 
 function stopReading() {
   if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
-  readingChunks = [];
-  readingIndex = 0;
-  isPaused = false;
-  isReading = false;
-  const pauseBtn = document.getElementById('btn-pause');
-  if (pauseBtn) { pauseBtn.disabled = true; pauseBtn.textContent = '⏸ Pausar lectura'; }
+  isSpeaking = false;
+  currentUtterance = null;
+  const btn = document.getElementById('btn-pause');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏸ Pausar lectura';
+  }
 }
 
 function mostrarCargando(texto) {
