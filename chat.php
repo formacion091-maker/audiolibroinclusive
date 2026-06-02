@@ -29,10 +29,12 @@
 
   <div id="chat" style="margin-top:18px;">
     <div id="mensajes" style="background:#0f172a;padding:12px;border-radius:8px;min-height:200px;color:#e6eef8;overflow:auto;"></div>
-    <div style="display:flex;margin-top:8px;">
+    <div style="display:flex;margin-top:8px;gap:8px;align-items:center;">
       <input id="input-chat" placeholder="Escribe un mensaje o pide que resuma/lea el PDF" style="flex:1;padding:10px;border-radius:6px;border:1px solid #ccc;">
-      <button id="send-chat">Enviar</button>
+      <button id="btn-voz-chat" type="button">🎙️ Hablar</button>
+      <button id="send-chat" type="button">Enviar</button>
     </div>
+    <div id="voice-status" style="margin-top:8px;color:#94a3b8;font-size:0.95rem;">Presiona 🎙️ para dictar tu mensaje por voz.</div>
   </div>
 </section>
 </main>

@@ -177,6 +177,46 @@ function ocultarCargando() {
   mostrarCargando('');
 }
 
+function actualizarEstadoVoz(mensaje) {
+  const estado = document.getElementById('voice-status');
+  if (estado) estado.textContent = mensaje;
+}
+
+function activarChatPorVoz() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Tu navegador no soporta reconocimiento de voz. Usa el teclado para escribir el mensaje.');
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = 'es-ES';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.continuous = false;
+
+  actualizarEstadoVoz('Escuchando... habla ahora.');
+  recognition.start();
+
+  recognition.onresult = function(event) {
+    const texto = event.results[0][0].transcript;
+    const input = document.getElementById('input-chat');
+    if (input) input.value = texto;
+    actualizarEstadoVoz('Texto reconocido. Puedes presionar Enviar para enviar tu mensaje.');
+  };
+
+  recognition.onerror = function(event) {
+    actualizarEstadoVoz('No se pudo reconocer la voz. Intenta de nuevo.');
+    console.error('Voice recognition error:', event.error);
+  };
+
+  recognition.onend = function() {
+    if (!document.getElementById('input-chat').value.trim()) {
+      actualizarEstadoVoz('Presiona 🎙️ para dictar tu mensaje por voz.');
+    }
+  };
+}
+
 let speechQueue = [];
 let speechActive = false;
 let speechStreamBuffer = '';
@@ -416,11 +456,17 @@ window.addEventListener('load', async ()=>{
     await enviarChat(prompt);
   });
 
+  const btnVozChat = document.getElementById('btn-voz-chat');
+  if (btnVozChat) {
+    btnVozChat.addEventListener('click', activarChatPorVoz);
+  }
+
   document.getElementById('send-chat').addEventListener('click', async ()=>{
     const msg = document.getElementById('input-chat').value.trim();
     if (!msg) return;
     await enviarChat(msg);
     document.getElementById('input-chat').value = '';
+    actualizarEstadoVoz('Presiona 🎙️ para dictar tu mensaje por voz.');
   });
 
 });
