@@ -25,6 +25,7 @@
   <button id="btn-resumen-rapido" disabled>⚡ Resumen rápido</button>
   <label style="margin-left:12px;"><input type="checkbox" id="voice-toggle" checked> Activar modo voz</label>
   <div id="loading-indicator" style="margin-top:12px;color:#f8fafc;font-style:italic;"></div>
+  <div id="realtime-status" style="margin-top:8px;color:#a3e635;font-style:italic;">Chat en vivo conectado a OpenAI streaming.</div>
 
   <div id="chat" style="margin-top:18px;">
     <div id="mensajes" style="background:#0f172a;padding:12px;border-radius:8px;min-height:200px;color:#e6eef8;overflow:auto;"></div>

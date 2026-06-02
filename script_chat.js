@@ -177,6 +177,66 @@ function ocultarCargando() {
   mostrarCargando('');
 }
 
+let speechQueue = [];
+let speechActive = false;
+let speechStreamBuffer = '';
+
+function resetSpeechStream() {
+  speechQueue = [];
+  speechActive = false;
+  speechStreamBuffer = '';
+  if ('speechSynthesis' in window) {
+    speechSynthesis.cancel();
+  }
+}
+
+function speakNextQueuedText() {
+  if (!speechQueue.length) {
+    speechActive = false;
+    return;
+  }
+  speechActive = true;
+  const text = speechQueue.shift();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'es-ES';
+  const voces = speechSynthesis.getVoices();
+  const voz = voces.find(v => v.lang.startsWith('es')) || voces[0];
+  if (voz) utter.voice = voz;
+  utter.rate = 0.92;
+  utter.onend = speakNextQueuedText;
+  speechSynthesis.speak(utter);
+}
+
+function enqueueSpeech(text) {
+  if (!text || !('speechSynthesis' in window)) return;
+  if (!document.getElementById('voice-toggle').checked) return;
+  speechQueue.push(text);
+  if (!speechActive) {
+    speakNextQueuedText();
+  }
+}
+
+function handleStreamDelta(delta) {
+  speechStreamBuffer += delta;
+  const sentences = speechStreamBuffer.match(/[^\.\!\?]+[\.\!\?]+[\])'"“”’]*|.+$/g);
+  if (!sentences) return;
+
+  let complete = sentences;
+  if (!/[\.\!\?]$/.test(sentences[sentences.length - 1].trim())) {
+    complete = sentences.slice(0, -1);
+    speechStreamBuffer = sentences[sentences.length - 1];
+  } else {
+    speechStreamBuffer = '';
+  }
+
+  complete.forEach(part => {
+    const text = part.trim();
+    if (text) {
+      enqueueSpeech(text);
+    }
+  });
+}
+
 async function enviarChat(message, system="Eres un asistente que ayuda a leer y resumir libros PDF en español."){
   const mensajes = document.getElementById('mensajes');
   const divUser = document.createElement('div'); divUser.textContent = 'Tú: ' + message; divUser.style.margin='8px 0'; mensajes.appendChild(divUser);
@@ -192,33 +252,79 @@ async function enviarChat(message, system="Eres un asistente que ayuda a leer y 
     payload.filename = window._lastExtractedFile;
   }
 
-  const res = await fetch('api_chat.php', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  });
-  let data;
-  try {
-    data = await res.json();
-  } catch (err) {
-    data = { error: 'Respuesta inválida del servidor: ' + err.message };
-  }
-
-  let content = '';
-  if (data && data.choices && data.choices[0] && data.choices[0].message) {
-    content = data.choices[0].message.content;
-  } else if (data && data.error) {
-    const errorValue = typeof data.error === 'object' ? JSON.stringify(data.error) : data.error;
-    content = 'Error: ' + errorValue;
-  } else {
-    content = JSON.stringify(data);
-  }
-
-  const divBot = document.createElement('div'); divBot.textContent = 'Asistente: ' + content; divBot.style.margin='8px 0'; divBot.style.fontWeight='bold'; mensajes.appendChild(divBot);
+  const divBot = document.createElement('div'); divBot.textContent = 'Asistente: '; divBot.style.margin='8px 0'; divBot.style.fontWeight='bold'; mensajes.appendChild(divBot);
   mensajes.scrollTop = mensajes.scrollHeight;
 
-  const voiceOn = document.getElementById('voice-toggle').checked;
-  if (voiceOn) hablar(content);
+  resetSpeechStream();
+  mostrarCargando('Conectando a OpenAI en vivo...');
+
+  try {
+    const res = await fetch('api_chat_stream.php', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error('Error del servidor: ' + errorText);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let completeText = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop();
+
+      for (const part of parts) {
+        if (!part.trim()) continue;
+        const line = part.trim();
+        if (!line.startsWith('data: ')) continue;
+        const payloadText = line.slice(6);
+        let payloadData;
+        try {
+          payloadData = JSON.parse(payloadText);
+        } catch (e) {
+          continue;
+        }
+
+        if (payloadData.event === 'message') {
+          completeText += payloadData.text;
+          divBot.textContent = 'Asistente: ' + completeText;
+          mensajes.scrollTop = mensajes.scrollHeight;
+          handleStreamDelta(payloadData.text);
+        }
+        if (payloadData.event === 'error') {
+          throw new Error(payloadData.message || 'Error en la transmisión');
+        }
+      }
+    }
+
+    if (buffer.trim().startsWith('data: ')) {
+      const payloadText = buffer.trim().slice(6);
+      let payloadData = JSON.parse(payloadText);
+      if (payloadData.event === 'message') {
+        completeText += payloadData.text;
+        divBot.textContent = 'Asistente: ' + completeText;
+        handleStreamDelta(payloadData.text);
+      }
+    }
+  } catch (err) {
+    const errorDiv = document.createElement('div');
+    errorDiv.textContent = 'Error: ' + (err.message || 'Error desconocido');
+    errorDiv.style.margin = '8px 0';
+    errorDiv.style.color = '#f87171';
+    mensajes.appendChild(errorDiv);
+    mensajes.scrollTop = mensajes.scrollHeight;
+  } finally {
+    ocultarCargando();
+  }
 }
 
 async function cargarLibroSeleccionado(archivo) {
