@@ -87,6 +87,7 @@ $librosPDF = obtenerLibrosPDF();
 <button onclick="activarModoOscuro()">🌙 Modo Oscuro</button>
 <button onclick="leerPagina()">🔊 Escuchar Página</button>
 <button onclick="activarBusquedaVoz()">🎤 Buscar por Voz</button>
+<button onclick="activarComandoVoz()">🗣️ Orden por Voz</button>
 <button onclick="pedirLibro()">🗣️ ¿Qué libro deseas leer?</button>
 <button onclick="cambiarIdioma('es-ES')">🇪🇸 Español</button>
 <button onclick="cambiarIdioma('en-US')">🇺🇸 English</button>

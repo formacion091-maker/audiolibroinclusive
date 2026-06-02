@@ -52,6 +52,13 @@ function cambiarIdioma(idioma){
     speechSynthesis.speak(mensaje);
 }
 
+function actualizarEstadoComandoVoz(mensaje) {
+    const status = document.getElementById('voice-command-status');
+    if (status) {
+        status.innerText = mensaje;
+    }
+}
+
 function activarBusquedaVoz(){
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const resultados = document.getElementById('resultados');
@@ -87,6 +94,170 @@ function activarBusquedaVoz(){
             resultados.innerHTML = '<p>La búsqueda por voz terminó. Escribe o vuelve a intentar con el botón.</p>';
         }
     };
+}
+
+function activarComandoVoz() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    actualizarEstadoComandoVoz('Preparado para recibir una instrucción. Habla ahora.');
+
+    if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = idiomaActual;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        recognition.continuous = false;
+
+        recognition.start();
+
+        recognition.onresult = function(event) {
+            const texto = event.results[0][0].transcript;
+            procesarComandoVoz(texto);
+        };
+
+        recognition.onerror = function(event) {
+            actualizarEstadoComandoVoz('No se pudo reconocer la voz. Intenta de nuevo.');
+            console.error('Speech recognition error:', event.error);
+        };
+
+        recognition.onend = function() {
+            if (!document.getElementById('busqueda').value.trim()) {
+                actualizarEstadoComandoVoz('Presiona 🗣️ Orden por Voz para intentarlo de nuevo.');
+            }
+        };
+        return;
+    }
+
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+        alert('Tu navegador no soporta reconocimiento de voz ni grabación de audio. Usa el teclado para escribir la instrucción.');
+        return;
+    }
+
+    grabarAudioComando();
+}
+
+async function grabarAudioComando() {
+    actualizarEstadoComandoVoz('Solicitando permiso de micrófono...');
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        recorder.ondataavailable = event => {
+            if (event.data && event.data.size > 0) {
+                chunks.push(event.data);
+            }
+        };
+
+        recorder.onstop = async () => {
+            stream.getTracks().forEach(track => track.stop());
+            if (!chunks.length) {
+                actualizarEstadoComandoVoz('No se detectó audio. Intenta nuevamente.');
+                return;
+            }
+            actualizarEstadoComandoVoz('Transcribiendo tu orden...');
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const formData = new FormData();
+            formData.append('audio', blob, 'voz.webm');
+            try {
+                const response = await fetch('voice_transcribe.php', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (response.ok && data.transcript) {
+                    procesarComandoVoz(data.transcript);
+                } else {
+                    actualizarEstadoComandoVoz(data.error || 'No se pudo transcribir la orden.');
+                }
+            } catch (error) {
+                actualizarEstadoComandoVoz('Error enviando el audio al servidor.');
+                console.error('transcription error', error);
+            }
+        };
+
+        recorder.onerror = event => {
+            actualizarEstadoComandoVoz('Error de grabación de audio.');
+            console.error('recorder error', event.error);
+        };
+
+        recorder.start();
+        actualizarEstadoComandoVoz('Grabando tu instrucción. Habla ahora.');
+        setTimeout(() => {
+            if (recorder.state === 'recording') {
+                recorder.stop();
+            }
+        }, 7000);
+    } catch (error) {
+        actualizarEstadoComandoVoz('No se pudo acceder al micrófono. Verifica permisos.');
+        console.error('microphone error', error);
+    }
+}
+
+function procesarComandoVoz(texto) {
+    if (!texto) {
+        actualizarEstadoComandoVoz('No se reconoció ninguna instrucción. Intenta de nuevo.');
+        return;
+    }
+
+    const comando = texto.toLowerCase();
+    actualizarEstadoComandoVoz('Instrucción recibida: "' + texto + '"');
+
+    const buscarMatch = comando.match(/buscar|encuentra|muestra|muéstrame/);
+    const leerMatch = comando.match(/leer|lee|abre|abre el libro|quiero leer/);
+    const pdfMatch = comando.match(/pdf|libro|texto/);
+
+    if (buscarMatch && comando.includes('libro')) {
+        const query = comando.replace(/^(buscar|encuentra|muestra|muéstrame)\s*/i, '').trim();
+        const input = document.getElementById('busqueda');
+        if (input) input.value = query;
+        buscarLibrosLocal();
+        actualizarEstadoComandoVoz('Buscando: ' + query);
+        return;
+    }
+
+    if (leerMatch && pdfMatch) {
+        const libro = encontrarLibroPorComando(comando);
+        if (libro) {
+            const url = libro.dataset.pdf;
+            if (url) {
+                actualizarEstadoComandoVoz('Orden recibida. Leyendo el libro ahora.');
+                leerPdf(url);
+                return;
+            }
+        }
+        actualizarEstadoComandoVoz('No encontré el libro en la instrucción. Dime el nombre exacto o usa "Buscar" primero.');
+        return;
+    }
+
+    if (buscarMatch) {
+        const query = comando.replace(/^(buscar|encuentra|muestra|muéstrame)\s*/i, '').trim();
+        const input = document.getElementById('busqueda');
+        if (input) input.value = query;
+        buscarLibrosLocal();
+        actualizarEstadoComandoVoz('Buscando: ' + query);
+        return;
+    }
+
+    actualizarEstadoComandoVoz('No entendí la instrucción. Di algo como "Buscar libro de cuentos" o "Leer el libro de inclusión".');
+}
+
+function encontrarLibroPorComando(comando) {
+    const libros = document.querySelectorAll('.libro-pdf');
+    let mejorCoincidencia = null;
+    let mayorPuntaje = 0;
+
+    libros.forEach(libro => {
+        const titulo = (libro.dataset.titulo || '').toLowerCase();
+        const descripcion = (libro.dataset.descripcion || '').toLowerCase();
+        let puntaje = 0;
+        if (!titulo) return;
+        if (comando.includes(titulo)) puntaje += 10;
+        if (titulo.split(' ').some(palabra => comando.includes(palabra))) puntaje += 3;
+        if (descripcion && descripcion.split(' ').some(palabra => comando.includes(palabra))) puntaje += 1;
+        if (puntaje > mayorPuntaje) {
+            mayorPuntaje = puntaje;
+            mejorCoincidencia = libro;
+        }
+    });
+
+    return mayorPuntaje >= 3 ? mejorCoincidencia : null;
 }
 
 function buscarLibrosLocal(){
