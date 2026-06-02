@@ -60,11 +60,12 @@ audiolibroinclusive/
    - Asegúrate de que las carpetas `audios/` e `imagenes/` existan y tengan permisos de escritura
    - Coloca archivos de audio en `audios/` para que aparezcan automáticamente en la biblioteca
 
-4. **Servidor web**:
-   - Necesitas un servidor web con PHP y MySQL (como XAMPP, WAMP o similar)
-   - Coloca los archivos en el directorio raíz del servidor web
+4. **Configura OpenAI**:
+   - Copia `.env.example` a `.env`
+   - Reemplaza `OPENAI_API_KEY=pon_aqui_tu_clave_openai` con tu clave real de OpenAI
+   - Si deseas cambiar el tiempo de espera, ajusta `OPENAI_TIMEOUT`
 
-## Uso
+5. **Servidor web**:
 
 ### Para Usuarios
 1. **Accede a la página principal**: `index.php`
@@ -92,9 +93,15 @@ La función `obtenerLibrosCarpeta()` en `index.php` y `biblioteca.php`:
 - Funciona tanto para libros de BD como de carpeta
 
 ### Reconocimiento de Voz
-- Usa Web Speech API
+- Usa Web Speech API cuando está disponible en el navegador
+- Si el navegador no soporta reconocimiento nativo, graba audio y lo envía al servicio de OpenAI Whisper para transcribirlo
 - Activable mediante botón
-- Convierte voz a texto para búsqueda
+- Convierte voz a texto para búsqueda y chat
+
+### Chat con IA y lectura de libros
+- Usa OpenAI para resumir y leer libros en voz alta
+- Implementa streaming en vivo de respuestas para mostrar texto mientras se genera
+- Requiere configurar la clave de OpenAI en `.env`
 
 ## Tecnologías Utilizadas
 

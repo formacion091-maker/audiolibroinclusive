@@ -184,37 +184,112 @@ function actualizarEstadoVoz(mensaje) {
 
 function activarChatPorVoz() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
+  if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
+
+    actualizarEstadoVoz('Escuchando... habla ahora.');
+    recognition.start();
+
+    recognition.onresult = function(event) {
+      const texto = event.results[0][0].transcript;
+      const input = document.getElementById('input-chat');
+      if (input) input.value = texto;
+      actualizarEstadoVoz('Texto reconocido. Puedes presionar Enviar para enviar tu mensaje.');
+    };
+
+    recognition.onerror = function(event) {
+      actualizarEstadoVoz('No se pudo reconocer la voz. Intenta de nuevo.');
+      console.error('Voice recognition error:', event.error);
+    };
+
+    recognition.onend = function() {
+      if (!document.getElementById('input-chat').value.trim()) {
+        actualizarEstadoVoz('Presiona 🎙️ para dictar tu mensaje por voz.');
+      }
+    };
+    return;
+  }
+
+  if (!navigator.mediaDevices || !window.MediaRecorder) {
     alert('Tu navegador no soporta reconocimiento de voz. Usa el teclado para escribir el mensaje.');
     return;
   }
 
-  const recognition = new SpeechRecognition();
-  recognition.lang = 'es-ES';
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
-  recognition.continuous = false;
+  grabarAudioParaTranscripcion();
+}
 
-  actualizarEstadoVoz('Escuchando... habla ahora.');
-  recognition.start();
+async function grabarAudioParaTranscripcion() {
+  actualizarEstadoVoz('Solicitando permiso de micrófono...');
 
-  recognition.onresult = function(event) {
-    const texto = event.results[0][0].transcript;
-    const input = document.getElementById('input-chat');
-    if (input) input.value = texto;
-    actualizarEstadoVoz('Texto reconocido. Puedes presionar Enviar para enviar tu mensaje.');
-  };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+    let stopped = false;
 
-  recognition.onerror = function(event) {
-    actualizarEstadoVoz('No se pudo reconocer la voz. Intenta de nuevo.');
-    console.error('Voice recognition error:', event.error);
-  };
+    recorder.ondataavailable = event => {
+      if (event.data && event.data.size > 0) {
+        chunks.push(event.data);
+      }
+    };
 
-  recognition.onend = function() {
-    if (!document.getElementById('input-chat').value.trim()) {
-      actualizarEstadoVoz('Presiona 🎙️ para dictar tu mensaje por voz.');
-    }
-  };
+    recorder.onstop = async () => {
+      if (stopped) return;
+      stopped = true;
+      stream.getTracks().forEach(track => track.stop());
+
+      if (!chunks.length) {
+        actualizarEstadoVoz('No se captó audio. Intenta de nuevo.');
+        return;
+      }
+
+      const blob = new Blob(chunks, { type: 'audio/webm' });
+      actualizarEstadoVoz('Transcribiendo audio... espera un momento.');
+
+      const formData = new FormData();
+      formData.append('audio', blob, 'voz.webm');
+
+      try {
+        const response = await fetch('voice_transcribe.php', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await response.json();
+
+        if (response.ok && data.transcript) {
+          const input = document.getElementById('input-chat');
+          if (input) input.value = data.transcript;
+          actualizarEstadoVoz('Transcripción lista. Presiona Enviar para enviar tu mensaje.');
+        } else {
+          actualizarEstadoVoz(data.error || 'No se pudo transcribir el audio.');
+        }
+      } catch (err) {
+        actualizarEstadoVoz('Error al transcribir el audio.');
+        console.error('Transcription error:', err);
+      }
+    };
+
+    recorder.onerror = event => {
+      actualizarEstadoVoz('Error de grabación de audio.');
+      console.error('Recorder error:', event.error);
+    };
+
+    recorder.start();
+    actualizarEstadoVoz('Grabando audio. Habla ahora...');
+
+    setTimeout(() => {
+      if (recorder.state === 'recording') {
+        recorder.stop();
+      }
+    }, 7000);
+  } catch (error) {
+    actualizarEstadoVoz('No se pudo acceder al micrófono. Verifica permisos.');
+    console.error('Microphone access error:', error);
+  }
 }
 
 let speechQueue = [];
@@ -455,6 +530,40 @@ window.addEventListener('load', async ()=>{
     const prompt = 'Genera un resumen rápido en español del libro cargado. Resume en pocas frases los puntos más importantes del contenido.';
     await enviarChat(prompt);
   });
+
+  const btnAskRead = document.getElementById('btn-ask-read');
+  if (btnAskRead) {
+    btnAskRead.addEventListener('click', async () => {
+      if (!window._lastExtractedText) return alert('Cargue el libro primero');
+      await enviarChat('Léeme el libro cargado en voz alta usando el texto extraído del PDF. Lee lentamente y claro.');
+    });
+  }
+
+  const btnAskSummary = document.getElementById('btn-ask-summary');
+  if (btnAskSummary) {
+    btnAskSummary.addEventListener('click', async () => {
+      if (!window._lastExtractedText) return alert('Cargue el libro primero');
+      await enviarChat('Dame un resumen claro y breve del libro cargado, con los puntos más importantes.');
+    });
+  }
+
+  const btnAskStructure = document.getElementById('btn-ask-structure');
+  if (btnAskStructure) {
+    btnAskStructure.addEventListener('click', async () => {
+      if (!window._lastExtractedText) return alert('Cargue el libro primero');
+      await enviarChat('Explica brevemente la estructura general del libro cargado y los temas principales.');
+    });
+  }
+
+  const inputChat = document.getElementById('input-chat');
+  if (inputChat) {
+    inputChat.addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        document.getElementById('send-chat').click();
+      }
+    });
+  }
 
   const btnVozChat = document.getElementById('btn-voz-chat');
   if (btnVozChat) {
